@@ -1,0 +1,2565 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>aMUzon Concurrency & Transaction Simulator 2026 | SOC Control Center</title>
+    <style>
+        :root {
+            --bg-color: #060913;
+            --panel-bg: rgba(10, 20, 38, 0.75);
+            --card-border: 1px solid rgba(0, 243, 255, 0.22);
+            --cyan: #00f3ff;
+            --cyan-glow: rgba(0, 243, 255, 0.4);
+            --green: #10b981;
+            --green-glow: rgba(16, 185, 129, 0.4);
+            --orange: #f59e0b;
+            --orange-glow: rgba(245, 158, 11, 0.4);
+            --red: #ef4444;
+            --red-glow: rgba(239, 68, 68, 0.4);
+            --text-main: #f1f5f9;
+            --text-muted: #94a3b8;
+            --accent-purple: #8b5cf6;
+            --font-mono: ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, Consolas, "Courier New", monospace;
+            --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: var(--font-sans);
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+            background-image: 
+                radial-gradient(circle at 50% 10%, rgba(0, 243, 255, 0.08) 0%, transparent 60%),
+                linear-gradient(rgba(0, 243, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 243, 255, 0.03) 1px, transparent 1px);
+            background-size: 100% 100%, 36px 36px, 36px 36px;
+        }
+
+        /* Scanline Overlay Effect */
+        body::after {
+            content: "";
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%);
+            background-size: 100% 4px;
+            pointer-events: none;
+            z-index: 999;
+            opacity: 0.55;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            position: relative;
+            z-index: 10;
+        }
+
+        /* Top High-Tech SOC Header */
+        header.soc-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 24px;
+            background: var(--panel-bg);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border: var(--card-border);
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 15px rgba(0, 243, 255, 0.1);
+            margin-bottom: 24px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        header.soc-header::before {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; width: 4px; height: 100%;
+            background: var(--cyan);
+            box-shadow: 0 0 12px var(--cyan);
+        }
+
+        .brand-container {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .server-avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: 8px;
+            background: rgba(0, 243, 255, 0.1);
+            border: 1px solid var(--cyan);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            box-shadow: 0 0 10px rgba(0, 243, 255, 0.3);
+            animation: pulse-border 2.5s infinite;
+        }
+
+        @keyframes pulse-border {
+            0%, 100% { border-color: var(--cyan); box-shadow: 0 0 8px var(--cyan-glow); }
+            50% { border-color: var(--green); box-shadow: 0 0 16px var(--green-glow); }
+        }
+
+        .brand-title h1 {
+            font-size: 1.35rem;
+            letter-spacing: 1.5px;
+            font-weight: 800;
+            color: #fff;
+            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .brand-title h1 span.highlight {
+            color: var(--cyan);
+            text-shadow: 0 0 10px var(--cyan-glow);
+        }
+
+        .brand-subtitle {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            font-family: var(--font-mono);
+            letter-spacing: 0.5px;
+        }
+
+        .header-telemetry {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .telemetry-node {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            font-family: var(--font-mono);
+            font-size: 0.78rem;
+        }
+
+        .telemetry-node .label {
+            color: var(--text-muted);
+            font-size: 0.7rem;
+            text-transform: uppercase;
+        }
+
+        .telemetry-node .value {
+            color: var(--cyan);
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .pulse-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--green);
+            box-shadow: 0 0 8px var(--green);
+            animation: blink 1.2s infinite ease-in-out;
+        }
+
+        .pulse-dot.danger {
+            background: var(--red);
+            box-shadow: 0 0 8px var(--red);
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.4; transform: scale(0.8); }
+        }
+
+        .btn-audio {
+            background: rgba(0, 243, 255, 0.1);
+            border: 1px solid var(--cyan);
+            color: var(--cyan);
+            border-radius: 8px;
+            padding: 8px 12px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-family: var(--font-mono);
+            transition: all 0.25s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-audio:hover {
+            background: var(--cyan);
+            color: var(--bg-color);
+            box-shadow: 0 0 14px var(--cyan-glow);
+        }
+
+        /* Glassmorphism Main Card */
+        .glass-panel {
+            background: var(--panel-bg);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border: var(--card-border);
+            border-radius: 14px;
+            padding: 28px;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+            margin-bottom: 24px;
+            position: relative;
+            transition: transform 0.3s ease, border-color 0.3s ease;
+        }
+
+        /* Screen Visibility Manager */
+        .screen {
+            display: none;
+            opacity: 0;
+            transform: translateY(12px);
+            transition: opacity 0.4s ease, transform 0.4s ease;
+        }
+
+        .screen.active {
+            display: block;
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* SCREEN 1: LOGIN & MISSION BRIEFING */
+        .briefing-box {
+            display: grid;
+            grid-template-columns: 1.2fr 0.8fr;
+            gap: 28px;
+            align-items: stretch;
+        }
+
+        @media (max-width: 900px) {
+            .briefing-box {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .briefing-narrative h2 {
+            font-size: 1.5rem;
+            color: var(--cyan);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .alert-banner {
+            background: rgba(239, 68, 68, 0.12);
+            border-left: 4px solid var(--red);
+            border-radius: 6px;
+            padding: 14px;
+            margin-bottom: 18px;
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            color: #fca5a5;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            animation: warning-pulse 2s infinite;
+        }
+
+        @keyframes warning-pulse {
+            0%, 100% { background: rgba(239, 68, 68, 0.12); }
+            50% { background: rgba(239, 68, 68, 0.22); }
+        }
+
+        .narrative-text {
+            color: var(--text-main);
+            font-size: 0.95rem;
+            line-height: 1.65;
+            margin-bottom: 16px;
+        }
+
+        .narrative-text strong {
+            color: var(--cyan);
+        }
+
+        .tech-spec-list {
+            list-style: none;
+            margin-bottom: 20px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .tech-spec-item {
+            background: rgba(0, 0, 0, 0.35);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 0.82rem;
+            font-family: var(--font-mono);
+            color: var(--text-muted);
+        }
+
+        .tech-spec-item span.highlight {
+            color: #fff;
+            font-weight: bold;
+            display: block;
+            margin-top: 2px;
+        }
+
+        .auth-form-card {
+            background: rgba(6, 12, 24, 0.85);
+            border: 1px solid rgba(0, 243, 255, 0.3);
+            border-radius: 12px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            box-shadow: 0 0 20px rgba(0, 243, 255, 0.08);
+        }
+
+        .form-header {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 12px;
+            margin-bottom: 18px;
+        }
+
+        .form-header h3 {
+            font-size: 1.1rem;
+            color: #fff;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .input-group {
+            margin-bottom: 16px;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 0.78rem;
+            font-family: var(--font-mono);
+            color: var(--cyan);
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 12px 14px;
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid rgba(0, 243, 255, 0.25);
+            border-radius: 8px;
+            color: #fff;
+            font-family: var(--font-mono);
+            font-size: 0.95rem;
+            outline: none;
+            transition: all 0.25s ease;
+        }
+
+        .input-group input:focus {
+            border-color: var(--cyan);
+            box-shadow: 0 0 12px var(--cyan-glow);
+            background: rgba(0, 243, 255, 0.05);
+        }
+
+        .seed-row {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-seed-random {
+            background: rgba(0, 243, 255, 0.12);
+            border: 1px solid var(--cyan);
+            color: var(--cyan);
+            border-radius: 8px;
+            padding: 0 14px;
+            cursor: pointer;
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .btn-seed-random:hover {
+            background: var(--cyan);
+            color: var(--bg-color);
+        }
+
+        .btn-launch {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #00f3ff 0%, #0077b6 100%);
+            border: none;
+            border-radius: 8px;
+            color: #030816;
+            font-weight: 800;
+            font-size: 1rem;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            cursor: pointer;
+            box-shadow: 0 0 20px var(--cyan-glow);
+            transition: all 0.3s ease;
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .btn-launch:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 30px rgba(0, 243, 255, 0.7);
+            filter: brightness(1.15);
+        }
+
+        /* HUD TELEMETRY BAR IN SCREEN 2 */
+        .hud-bar {
+            display: grid;
+            grid-template-columns: auto 1fr auto auto auto;
+            align-items: center;
+            gap: 20px;
+            padding: 14px 20px;
+            background: rgba(5, 12, 28, 0.85);
+            border: var(--card-border);
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: inset 0 0 15px rgba(0, 243, 255, 0.05);
+        }
+
+        @media (max-width: 850px) {
+            .hud-bar {
+                grid-template-columns: 1fr 1fr;
+                gap: 12px;
+            }
+        }
+
+        /* Learning Outcome Badge */
+        .ra-badge {
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.25) 0%, rgba(59, 130, 246, 0.25) 100%);
+            border: 1px solid var(--accent-purple);
+            color: #c4b5fd;
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            font-weight: bold;
+            padding: 6px 14px;
+            border-radius: 20px;
+            letter-spacing: 0.5px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 0 10px rgba(139, 92, 246, 0.2);
+        }
+
+        .stress-meter-box {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .stress-label {
+            display: flex;
+            justify-content: space-between;
+            font-family: var(--font-mono);
+            font-size: 0.72rem;
+            color: var(--text-muted);
+        }
+
+        .stress-track {
+            width: 100%;
+            height: 10px;
+            background: rgba(0, 0, 0, 0.6);
+            border-radius: 5px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .stress-fill {
+            height: 100%;
+            width: 99.4%;
+            background: linear-gradient(90deg, var(--green) 0%, var(--orange) 60%, var(--red) 100%);
+            border-radius: 4px;
+            transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 0 8px var(--red-glow);
+        }
+
+        .hud-stat {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            font-family: var(--font-mono);
+        }
+
+        .hud-stat .hud-label {
+            font-size: 0.68rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        .hud-stat .hud-val {
+            font-size: 1.15rem;
+            font-weight: bold;
+            color: var(--cyan);
+        }
+
+        .hud-stat .hud-val.green {
+            color: var(--green);
+        }
+
+        /* Challenge Card */
+        .challenge-header {
+            margin-bottom: 20px;
+        }
+
+        .challenge-title-group {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 16px;
+            margin-top: 10px;
+        }
+
+        .challenge-title-group h2 {
+            font-size: 1.35rem;
+            color: #fff;
+            letter-spacing: 0.5px;
+        }
+
+        .challenge-counter {
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            background: rgba(0, 243, 255, 0.1);
+            border: 1px solid var(--cyan);
+            color: var(--cyan);
+            padding: 4px 10px;
+            border-radius: 6px;
+            white-space: nowrap;
+        }
+
+        .challenge-context-box {
+            background: rgba(0, 0, 0, 0.45);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 10px;
+            padding: 18px;
+            margin-bottom: 22px;
+            line-height: 1.6;
+            font-size: 0.95rem;
+            color: #e2e8f0;
+        }
+
+        .challenge-context-box strong {
+            color: var(--cyan);
+        }
+
+        /* Interactive Diagram & Code Box */
+        .interactive-stage {
+            background: #040711;
+            border: 1px solid rgba(0, 243, 255, 0.25);
+            border-radius: 10px;
+            padding: 16px;
+            margin-bottom: 22px;
+            font-family: var(--font-mono);
+            overflow-x: auto;
+            position: relative;
+            box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.7);
+        }
+
+        .stage-title {
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+            padding-bottom: 6px;
+        }
+
+        .code-snippet {
+            color: #38bdf8;
+            font-size: 0.88rem;
+            line-height: 1.5;
+            white-space: pre-wrap;
+        }
+
+        .code-keyword { color: #f43f5e; font-weight: bold; }
+        .code-func { color: #a855f7; }
+        .code-string { color: #34d399; }
+        .code-comment { color: #64748b; font-style: italic; }
+        .code-highlight { color: #fbbf24; font-weight: bold; }
+
+        /* Question prompt */
+        .question-prompt {
+            font-size: 1.05rem;
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 18px;
+            line-height: 1.5;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .question-prompt::before {
+            content: "▶";
+            color: var(--cyan);
+            font-size: 0.9rem;
+            margin-top: 3px;
+        }
+
+        /* Interactive Option Buttons */
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .option-btn {
+            background: rgba(10, 20, 38, 0.8);
+            border: 1px solid rgba(0, 243, 255, 0.18);
+            border-radius: 10px;
+            padding: 16px 20px;
+            color: #cbd5e1;
+            font-size: 0.92rem;
+            line-height: 1.5;
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+        }
+
+        .option-btn:hover:not(:disabled) {
+            background: rgba(0, 243, 255, 0.08);
+            border-color: var(--cyan);
+            color: #fff;
+            transform: translateX(4px);
+            box-shadow: 0 4px 15px rgba(0, 243, 255, 0.15);
+        }
+
+        .option-badge {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 6px;
+            width: 26px;
+            height: 26px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            font-weight: bold;
+            flex-shrink: 0;
+            color: var(--cyan);
+            transition: all 0.2s;
+        }
+
+        .option-btn.selected-correct {
+            background: rgba(16, 185, 129, 0.18) !important;
+            border-color: var(--green) !important;
+            color: #fff !important;
+            box-shadow: 0 0 20px var(--green-glow) !important;
+        }
+
+        .option-btn.selected-correct .option-badge {
+            background: var(--green);
+            color: #030816;
+            border-color: var(--green);
+        }
+
+        .option-btn.selected-incorrect {
+            background: rgba(239, 68, 68, 0.18) !important;
+            border-color: var(--red) !important;
+            color: #fff !important;
+            box-shadow: 0 0 20px var(--red-glow) !important;
+        }
+
+        .option-btn.selected-incorrect .option-badge {
+            background: var(--red);
+            color: #fff;
+            border-color: var(--red);
+        }
+
+        .option-btn.reveal-correct {
+            border-color: var(--green) !important;
+            background: rgba(16, 185, 129, 0.08) !important;
+        }
+
+        .option-btn:disabled {
+            cursor: default;
+        }
+
+        /* Pedagogical Feedback Box */
+        .feedback-panel {
+            display: none;
+            border-radius: 10px;
+            padding: 18px 20px;
+            margin-bottom: 20px;
+            font-size: 0.92rem;
+            line-height: 1.6;
+            animation: fadeIn 0.4s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .feedback-panel.correct {
+            background: rgba(16, 185, 129, 0.12);
+            border: 1px solid var(--green);
+            color: #a7f3d0;
+        }
+
+        .feedback-panel.incorrect {
+            background: rgba(239, 68, 68, 0.12);
+            border: 1px solid var(--red);
+            color: #fecaca;
+        }
+
+        .feedback-title {
+            font-weight: bold;
+            font-family: var(--font-mono);
+            font-size: 0.95rem;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .feedback-panel.correct .feedback-title { color: var(--green); }
+        .feedback-panel.incorrect .feedback-title { color: var(--red); }
+
+        .btn-next {
+            display: none;
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            border: none;
+            border-radius: 8px;
+            color: #04140e;
+            font-weight: 800;
+            font-size: 1rem;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            cursor: pointer;
+            box-shadow: 0 0 20px var(--green-glow);
+            transition: all 0.3s ease;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .btn-next:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 30px rgba(16, 185, 129, 0.7);
+            filter: brightness(1.15);
+        }
+
+        /* SCREEN 3: RESULTS SCREEN */
+        .results-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .results-header h2 {
+            font-size: 2rem;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: #fff;
+            margin-bottom: 8px;
+        }
+
+        .results-header p {
+            color: var(--text-muted);
+            font-size: 1rem;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 30px;
+        }
+
+        @media (max-width: 900px) {
+            .metrics-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        .metric-card {
+            background: rgba(0, 0, 0, 0.45);
+            border: 1px solid rgba(0, 243, 255, 0.2);
+            border-radius: 10px;
+            padding: 18px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .metric-card::before {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; right: 0; height: 3px;
+            background: var(--cyan);
+        }
+
+        .metric-card.success::before { background: var(--green); }
+        .metric-card.warning::before { background: var(--orange); }
+
+        .metric-label {
+            font-size: 0.75rem;
+            font-family: var(--font-mono);
+            color: var(--text-muted);
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
+        .metric-value {
+            font-size: 1.8rem;
+            font-weight: 900;
+            font-family: var(--font-mono);
+            color: #fff;
+        }
+
+        .metric-value span.unit {
+            font-size: 0.9rem;
+            font-weight: normal;
+            color: var(--cyan);
+        }
+
+        /* ADVANCE KEY BOX (DESBLOQUEO SIGUIENTE RETO DOCENTE) */
+        .advance-key-box {
+            background: rgba(2, 6, 16, 0.95);
+            border: 1px solid rgba(0, 243, 255, 0.35);
+            border-radius: 12px;
+            padding: 24px 28px;
+            margin: 28px 0;
+            text-align: left;
+            box-shadow: 0 0 25px rgba(0, 243, 255, 0.15);
+            position: relative;
+        }
+
+        .advance-key-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .advance-key-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #10b981;
+            font-family: var(--font-mono);
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+        }
+
+        .advance-key-badge {
+            font-family: var(--font-mono);
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: #10b981;
+            border: 1px solid #10b981;
+            border-radius: 4px;
+            padding: 4px 10px;
+            background: rgba(16, 185, 129, 0.08);
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .advance-key-desc {
+            color: var(--text-muted);
+            font-size: 0.92rem;
+            line-height: 1.55;
+            margin-bottom: 18px;
+        }
+
+        .advance-key-desc strong {
+            color: #fff;
+        }
+
+        .advance-key-display {
+            background: #02040a;
+            border: 1px solid rgba(0, 243, 255, 0.35);
+            border-radius: 8px;
+            padding: 12px 28px;
+            display: inline-block;
+            margin-bottom: 16px;
+            font-family: var(--font-mono);
+            font-size: 1.45rem;
+            font-weight: 700;
+            color: var(--cyan);
+            letter-spacing: 2.5px;
+            text-shadow: 0 0 12px rgba(0, 243, 255, 0.6);
+            user-select: all;
+        }
+
+        .btn-advance-copy {
+            background: var(--cyan);
+            color: #060913;
+            border: none;
+            padding: 11px 22px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 700;
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+            box-shadow: 0 0 15px var(--cyan-glow);
+        }
+
+        .btn-advance-copy:hover {
+            filter: brightness(1.15);
+            transform: translateY(-2px);
+            box-shadow: 0 0 25px rgba(0, 243, 255, 0.6);
+        }
+
+        .btn-advance-copy.copied {
+            background: var(--green);
+            color: #030816;
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.6);
+        }
+
+        /* FLOATING VERIFICATION CERTIFICATE PANEL (HIGH VISIBILITY CVHC) */
+        .certificate-box {
+            background: linear-gradient(135deg, rgba(8, 26, 51, 0.9) 0%, rgba(4, 14, 30, 0.95) 100%);
+            border: 2px solid var(--cyan);
+            box-shadow: 0 0 35px rgba(0, 243, 255, 0.25);
+            border-radius: 12px;
+            padding: 26px;
+            margin-bottom: 30px;
+            position: relative;
+        }
+
+        .certificate-badge-top {
+            position: absolute;
+            top: -14px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--cyan);
+            color: #030816;
+            font-family: var(--font-mono);
+            font-weight: 800;
+            font-size: 0.75rem;
+            letter-spacing: 1px;
+            padding: 4px 18px;
+            border-radius: 14px;
+            box-shadow: 0 0 15px var(--cyan-glow);
+            text-transform: uppercase;
+        }
+
+        .cert-info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin-bottom: 18px;
+            padding-bottom: 14px;
+            border-bottom: 1px solid rgba(0, 243, 255, 0.15);
+        }
+
+        .cert-student-details {
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+        }
+
+        .cert-student-details strong {
+            color: var(--cyan);
+        }
+
+        .cvhc-display-wrapper {
+            background: #02050e;
+            border: 1px dashed var(--cyan);
+            border-radius: 8px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .cvhc-title {
+            font-family: var(--font-mono);
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .cvhc-code {
+            font-family: var(--font-mono);
+            font-size: 1.15rem;
+            color: #00f3ff;
+            word-break: break-all;
+            background: rgba(0, 243, 255, 0.05);
+            padding: 10px 14px;
+            border-radius: 6px;
+            letter-spacing: 1px;
+            font-weight: bold;
+            text-align: center;
+            border: 1px solid rgba(0, 243, 255, 0.2);
+            user-select: all;
+        }
+
+        .cert-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+
+        .btn-copy-hash {
+            background: var(--cyan);
+            color: #030816;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 24px;
+            font-family: var(--font-mono);
+            font-weight: bold;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 0 15px var(--cyan-glow);
+        }
+
+        .btn-copy-hash:hover {
+            filter: brightness(1.15);
+            transform: translateY(-2px);
+            box-shadow: 0 0 25px rgba(0, 243, 255, 0.6);
+        }
+
+        .copy-toast {
+            display: none;
+            color: var(--green);
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            align-self: center;
+            animation: fadeIn 0.3s;
+        }
+
+        /* Detailed History Accordion */
+        .history-box h3 {
+            font-size: 1.15rem;
+            color: #fff;
+            margin-bottom: 16px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .history-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .history-item {
+            background: rgba(0, 0, 0, 0.35);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 8px;
+            padding: 14px 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            font-size: 0.9rem;
+        }
+
+        .history-item.correct {
+            border-left: 4px solid var(--green);
+        }
+
+        .history-item.incorrect {
+            border-left: 4px solid var(--red);
+        }
+
+        .history-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .history-title {
+            color: #fff;
+            font-weight: 600;
+        }
+
+        .history-subtitle {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            font-family: var(--font-mono);
+        }
+
+        .history-score-badge {
+            font-family: var(--font-mono);
+            font-weight: bold;
+            font-size: 0.9rem;
+            padding: 4px 10px;
+            border-radius: 6px;
+            white-space: nowrap;
+        }
+
+        .history-score-badge.correct {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--green);
+            border: 1px solid var(--green);
+        }
+
+        .history-score-badge.incorrect {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--red);
+            border: 1px solid var(--red);
+        }
+
+        /* GLOBAL ERROR RECOVERY MODAL */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(3, 7, 18, 0.85);
+            backdrop-filter: blur(8px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal-card {
+            background: #0a1122;
+            border: 2px solid var(--red);
+            border-radius: 12px;
+            max-width: 500px;
+            width: 100%;
+            padding: 28px;
+            box-shadow: 0 0 35px var(--red-glow);
+            text-align: center;
+        }
+
+        .modal-card h3 {
+            color: var(--red);
+            font-size: 1.3rem;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+        }
+
+        .modal-card p {
+            color: #cbd5e1;
+            font-size: 0.95rem;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+
+        .btn-retry {
+            background: var(--red);
+            color: #fff;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-retry:hover {
+            filter: brightness(1.2);
+            box-shadow: 0 0 15px var(--red-glow);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            header.soc-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 14px;
+            }
+            .header-telemetry {
+                width: 100%;
+                justify-content: space-between;
+            }
+            .glass-panel {
+                padding: 18px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- TOP HIGH-TECH SOC HEADER -->
+    <header class="soc-header">
+        <div class="brand-container">
+            <div class="server-avatar">⚡</div>
+            <div class="brand-title">
+                <h1>aMUzon <span class="highlight">SOC-DB-CORE</span></h1>
+                <div class="brand-subtitle">SIMULADOR CONCURRENCIA & CONTROL TRANSACCIONAL // MÓDULO 0484</div>
+            </div>
+        </div>
+
+        <div class="header-telemetry">
+            <div class="telemetry-node">
+                <span class="label">ESTADO CLÚSTER</span>
+                <span class="value" id="header-cluster-status"><span class="pulse-dot"></span> EN LÍNEA (50K TPS)</span>
+            </div>
+            <button class="btn-audio" id="btn-toggle-sound" title="Alternar audio de sintetizador WebAudio">
+                <span id="audio-icon">🔊</span> AUDIO: ON
+            </button>
+        </div>
+    </header>
+
+    <!-- SCREEN 1: LOGIN & MISSION BRIEFING -->
+    <section id="screen-login" class="screen active">
+        <div class="glass-panel">
+            <div class="briefing-box">
+                <div class="briefing-narrative">
+                    <h2>🚨 ALERTA CRÍTICA DE CONCURRENCIA</h2>
+                    <div class="alert-banner">
+                        <span>⚠️</span>
+                        <div>
+                            <strong>INCIDENCIA MAYOR:</strong> COLISIÓN DE BLOQUEOS AL 99.4% EN EL EVENTO MASIVO DE AMUZON. DETECTADOS STOCK NEGATIVO, SALDOS FANTASMA E INTERBLOQUEOS (DEADLOCKS).
+                        </div>
+                    </div>
+                    <p class="narrative-text">
+                        Bienvenido/a al puesto de mando del <strong>Centro de Operaciones de Sistemas (SOC) de aMUzon</strong> en la Región de Murcia. Como Especialista en Gestión y Administración de Bases de Datos Relacionales (Módulo 0484), tu intervención urgente es requerida para frenar la degradación catastrófica del clúster PostgreSQL/MySQL.
+                    </p>
+                    <p class="narrative-text">
+                        Afrontarás <strong>10 Retos de Ingeniería Transaccional</strong> que pondrán a prueba tu dominio sobre <em>Propiedades ACID</em>, <em>Niveles de Aislamiento SQL</em>, <em>Bloqueos Pesimistas (SELECT FOR UPDATE)</em>, <em>Colas Concurrentes con SKIP LOCKED</em>, <em>Savepoints</em> y <em>Optimización del WAL</em>.
+                    </p>
+                    <ul class="tech-spec-list">
+                        <li class="tech-spec-item">
+                            TRANSACCIONES SIMULTÁNEAS
+                            <span class="highlight">50.000 TPS Pico</span>
+                        </li>
+                        <li class="tech-spec-item">
+                            MOTOR RELACIONAL
+                            <span class="highlight">PostgreSQL / InnoDB MVCC</span>
+                        </li>
+                        <li class="tech-spec-item">
+                            METRICA OBJETIVO
+                            <span class="highlight">Reducir Contención &lt; 5%</span>
+                        </li>
+                        <li class="tech-spec-item">
+                            PROTOCOLO EVALUATIVO
+                            <span class="highlight">Firma Antifraude SHA-256</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="auth-form-card">
+                    <div class="form-header">
+                        <h3>🔑 Credenciales de Acceso</h3>
+                        <p style="font-size: 0.78rem; color: var(--text-muted); margin-top: 4px;">Identifícate para iniciar la auditoría y generar la semilla de examen.</p>
+                    </div>
+
+                    <div id="form-login">
+                        <div class="input-group">
+                            <label for="student-name">Nombre y Apellidos</label>
+                            <input type="text" id="student-name" placeholder="Ej: Juan Pérez Sánchez" required autocomplete="off">
+                        </div>
+
+                        <div class="input-group">
+                            <label for="student-id">DNI / Expediente Académico</label>
+                            <input type="text" id="student-id" placeholder="Ej: 48765432X" required autocomplete="off">
+                        </div>
+
+                        <div class="input-group">
+                            <label for="student-seed">Semilla Pseudoaleatoria (PRNG)</label>
+                            <div class="seed-row">
+                                <input type="number" id="student-seed" min="1000" max="9999" required>
+                                <button type="button" class="btn-seed-random" onclick="generateRandomSeed()">🎲 Auto</button>
+                            </div>
+                        </div>
+
+                        <button type="button" class="btn-launch" id="btn-start-simulation">
+                            <span>⚡ INICIAR AUDITORÍA TRANSACCIONAL</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- SCREEN 2: CHALLENGE ARENA -->
+    <section id="screen-game" class="screen">
+        <!-- HUD BAR -->
+        <div class="hud-bar">
+            <div>
+                <span class="ra-badge" id="hud-ra-badge">📌 RA3/UD3 - GESTIÓN DE CONCURRENCIA</span>
+            </div>
+
+            <div class="stress-meter-box">
+                <div class="stress-label">
+                    <span>ESTRÉS CPU & CONTENCIÓN DE BLOQUEOS</span>
+                    <strong id="hud-stress-val" style="color: var(--red);">99.4%</strong>
+                </div>
+                <div class="stress-track">
+                    <div class="stress-fill" id="hud-stress-bar"></div>
+                </div>
+            </div>
+
+            <div class="hud-stat">
+                <span class="hud-label">EXPEDIENTE</span>
+                <span class="hud-val" id="hud-student-id">---</span>
+            </div>
+
+            <div class="hud-stat">
+                <span class="hud-label">PUNTUACIÓN</span>
+                <span class="hud-val green" id="hud-score">0 / 1000</span>
+            </div>
+
+            <div class="hud-stat">
+                <span class="hud-label">TIEMPO MISIÓN</span>
+                <span class="hud-val" id="hud-timer">00:00</span>
+            </div>
+        </div>
+
+        <!-- MAIN CHALLENGE CARD -->
+        <div class="glass-panel" id="challenge-container">
+            <!-- Content injected dynamically via loadChallenge() -->
+        </div>
+    </section>
+
+    <!-- SCREEN 3: RESULTS SCREEN & ANTIFRAUD CERTIFICATE -->
+    <section id="screen-results" class="screen">
+        <div class="glass-panel">
+            <div class="results-header">
+                <h2 id="results-headline">AUDITORÍA TRANSACCIONAL FINALIZADA</h2>
+                <p id="results-subheadline">Diagnóstico completo de rendimiento, integridad transaccional y control de concurrencia.</p>
+            </div>
+
+            <div class="metrics-grid">
+                <div class="metric-card" id="card-score">
+                    <div class="metric-label">PUNTUACIÓN OBTENIDA</div>
+                    <div class="metric-value" id="res-score">0 <span class="unit">/ 1000 pts</span></div>
+                </div>
+
+                <div class="metric-card" id="card-grade">
+                    <div class="metric-label">CALIFICACIÓN EQUIVALENTE</div>
+                    <div class="metric-value" id="res-grade">0.0 <span class="unit">/ 10.0</span></div>
+                </div>
+
+                <div class="metric-card success">
+                    <div class="metric-label">MITIGACIÓN DE BLOQUEOS</div>
+                    <div class="metric-value" id="res-stress-reduction">0% <span class="unit">resuelto</span></div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-label">TIEMPO TOTAL AUDITORÍA</div>
+                    <div class="metric-value" id="res-time">00:00 <span class="unit">min</span></div>
+                </div>
+            </div>
+
+            <!-- CLAVE PARA AVANZAR AL SIGUIENTE RETO (Tarjeta desbloqueo docente) -->
+            <div class="advance-key-box">
+                <div class="advance-key-header">
+                    <div class="advance-key-title">
+                        <span>🔑 CLAVE PARA AVANZAR AL SIGUIENTE RETO</span>
+                    </div>
+                    <div class="advance-key-badge">
+                        PROTOCOLO SUPERADO // DESBLOQUEADO
+                    </div>
+                </div>
+                <p class="advance-key-desc">
+                    Has completado con éxito la auditoría y estabilización del clúster de aMUzon. Utiliza la siguiente clave en la plataforma docente para desbloquear y avanzar al <strong>Siguiente Reto</strong> de la asignatura:
+                </p>
+                <div>
+                    <div class="advance-key-display" id="advanceKeyDisplay"></div>
+                </div>
+                <div>
+                    <button class="btn-advance-copy" id="btnCopyAdvanceKey" onclick="copyAdvanceKey()" type="button">
+                        <span>📋 COPIAR CLAVE DE ACCESO</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- FLOATING HIGH-VISIBILITY CERTIFICATE PANEL -->
+            <div class="certificate-box">
+                <div class="certificate-badge-top">CERTIFICADO DE AUTENTICIDAD & AUDITORÍA DOCENTE</div>
+                
+                <div class="cert-info-row">
+                    <div class="cert-student-details">
+                        ESTUDIANTE: <strong id="cert-student-name">---</strong> | 
+                        DNI/EXPEDIENTE: <strong id="cert-student-dni">---</strong> | 
+                        SEMILLA: <strong id="cert-student-seed">---</strong>
+                    </div>
+                    <div style="font-family: var(--font-mono); font-size: 0.8rem; color: var(--cyan);">
+                        AMUZON-CLUSTER-MURCIA-04 // PROTOCOLO ACID 2026
+                    </div>
+                </div>
+
+                <div class="cvhc-display-wrapper">
+                    <div class="cvhc-title">
+                        <span>CÓDIGO DE VERIFICACIÓN HASH COPIABLE (CVHC)</span>
+                        <span style="color: var(--green);">● SHA-256 SIGNED</span>
+                    </div>
+                    <div class="cvhc-code" id="cvhc-code-text">GENERANDO...</div>
+                </div>
+
+                <div class="cert-actions">
+                    <span class="copy-toast" id="copy-toast">✔ ¡Código copiado al portapapeles!</span>
+                    <button class="btn-copy-hash" id="btn-copy-cvhc" onclick="copyCVHC()">
+                        <span>📋 COPIAR CÓDIGO CVHC</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- DETAILED HISTORY ACCORDION -->
+            <div class="history-box">
+                <h3>📜 Desglose de Retos e Integridad Transaccional</h3>
+                <div class="history-list" id="results-history-list">
+                    <!-- Injected dynamically -->
+                </div>
+            </div>
+
+            <div style="display: flex; justify-content: center; margin-top: 30px;">
+                <button class="btn-audio" onclick="location.reload()" style="padding: 12px 24px; font-size: 0.95rem;">
+                    🔄 REINICIAR SIMULADOR
+                </button>
+            </div>
+        </div>
+    </section>
+</div>
+
+<!-- GLOBAL EXCEPTION RECOVERY MODAL -->
+<div class="modal-overlay" id="error-recovery-modal">
+    <div class="modal-card">
+        <h3>⚠️ RECUPERACIÓN DE ESTADO DEL SIMULADOR</h3>
+        <p id="error-modal-message">Se ha detectado un fallo imprevisto en la ejecución del reto. Para garantizar la integridad del examen, puedes reintentar la carga del reto actual.</p>
+        <button class="btn-retry" onclick="retryCurrentChallenge()">REINTENTAR RETO</button>
+    </div>
+</div>
+
+<script>
+function decodeEmbeddedValue(encoded) {
+    const mask = 91;
+    return encoded.map(code => String.fromCharCode(code ^ mask)).join('');
+}
+
+/**
+ * aMUzon Concurrency & Transaction Simulator 2026
+ * Módulo 0484: Bases de Datos (DAM / DAW)
+ * Vanilla JavaScript ES6+ / WebAudio API / Pure SHA-256 Digest
+ */
+
+// ==========================================
+// 1. SOUND SYNTHESIZER (WebAudio API)
+// ==========================================
+class SoundSynth {
+    constructor() {
+        this.ctx = null;
+        this.enabled = true;
+    }
+
+    init() {
+        if (!this.ctx) {
+            const AudioCtx = window.AudioContext || window.webkitAudioContext;
+            if (AudioCtx) {
+                this.ctx = new AudioCtx();
+            }
+        }
+        if (this.ctx && this.ctx.state === 'suspended') {
+            this.ctx.resume();
+        }
+    }
+
+    toggle() {
+        this.enabled = !this.enabled;
+        return this.enabled;
+    }
+
+    playClick() {
+        if (!this.enabled) return;
+        this.init();
+        if (!this.ctx) return;
+        try {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(800, this.ctx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(300, this.ctx.currentTime + 0.05);
+            gain.gain.setValueAtTime(0.12, this.ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.05);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start();
+            osc.stop(this.ctx.currentTime + 0.05);
+        } catch (e) {}
+    }
+
+    playSuccess() {
+        if (!this.enabled) return;
+        this.init();
+        if (!this.ctx) return;
+        try {
+            const now = this.ctx.currentTime;
+            const freqs = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+            freqs.forEach((f, i) => {
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(f, now + i * 0.08);
+                gain.gain.setValueAtTime(0.15, now + i * 0.08);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.08 + 0.25);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now + i * 0.08);
+                osc.stop(now + i * 0.08 + 0.25);
+            });
+        } catch (e) {}
+    }
+
+    playError() {
+        if (!this.enabled) return;
+        this.init();
+        if (!this.ctx) return;
+        try {
+            const now = this.ctx.currentTime;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(180, now);
+            osc.frequency.exponentialRampToValueAtTime(80, now + 0.35);
+            gain.gain.setValueAtTime(0.2, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(now);
+            osc.stop(now + 0.35);
+        } catch (e) {}
+    }
+
+    playVictory() {
+        if (!this.enabled) return;
+        this.init();
+        if (!this.ctx) return;
+        try {
+            const now = this.ctx.currentTime;
+            const notes = [
+                { f: 523.25, d: 0.15, t: 0.0 },
+                { f: 659.25, d: 0.15, t: 0.15 },
+                { f: 783.99, d: 0.15, t: 0.3 },
+                { f: 1046.50, d: 0.45, t: 0.45 }
+            ];
+            notes.forEach(n => {
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(n.f, now + n.t);
+                gain.gain.setValueAtTime(0.22, now + n.t);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + n.t + n.d);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now + n.t);
+                osc.stop(now + n.t + n.d);
+            });
+        } catch (e) {}
+    }
+}
+
+const sound = new SoundSynth();
+
+document.getElementById('btn-toggle-sound').addEventListener('click', () => {
+    const isEnabled = sound.toggle();
+    const btn = document.getElementById('btn-toggle-sound');
+    const icon = document.getElementById('audio-icon');
+    if (isEnabled) {
+        btn.innerHTML = '<span id="audio-icon">🔊</span> AUDIO: ON';
+        sound.playClick();
+    } else {
+        btn.innerHTML = '<span id="audio-icon">🔇</span> AUDIO: OFF';
+    }
+});
+
+
+// ==========================================
+// 2. CRYPTOGRAPHIC SHA-256 DIGEST (Pure JS Fallback + WebCrypto)
+// ==========================================
+function sha256Pure(ascii) {
+    function toUtf8(str) {
+        return unescape(encodeURIComponent(str));
+    }
+    ascii = toUtf8(ascii);
+    function rightRotate(value, amount) {
+        return (value >>> amount) | (value << (32 - amount));
+    }
+    const mathPow = Math.pow;
+    const maxWord = mathPow(2, 32);
+    let i, j;
+    let result = '';
+    const words = [];
+    const asciiBitLength = ascii.length * 8;
+    let hash = [];
+    let k = [];
+    let primeCounter = 0;
+    const isPrime = {};
+    for (let candidate = 2; primeCounter < 64; candidate++) {
+        if (!isPrime[candidate]) {
+            for (i = candidate * 2; i <= 311; i += candidate) { isPrime[i] = true; }
+            if (primeCounter < 8) hash[primeCounter] = (mathPow(candidate, 0.5) * maxWord) | 0;
+            k[primeCounter] = (mathPow(candidate, 1/3) * maxWord) | 0;
+            primeCounter++;
+        }
+    }
+    ascii += '\x80';
+    while (ascii.length % 64 - 56) ascii += '\x00';
+    for (i = 0; i < ascii.length; i++) {
+        j = ascii.charCodeAt(i);
+        words[i >> 2] |= j << ((3 - i % 4) * 8);
+    }
+    words[words.length] = ((asciiBitLength / maxWord) | 0);
+    words[words.length] = (asciiBitLength | 0);
+    for (j = 0; j < words.length;) {
+        const w = words.slice(j, j += 16);
+        const oldHash = hash;
+        hash = hash.slice(0, 8);
+        for (i = 0; i < 64; i++) {
+            const w15 = w[i - 15], w2 = w[i - 2];
+            const s0 = rightRotate(w15, 7) ^ rightRotate(w15, 18) ^ (w15 >>> 3);
+            const s1 = rightRotate(w2, 17) ^ rightRotate(w2, 19) ^ (w2 >>> 10);
+            const ch = (hash[4] & hash[5]) ^ (~hash[4] & hash[6]);
+            const temp1 = (hash[7] + (rightRotate(hash[4], 6) ^ rightRotate(hash[4], 11) ^ rightRotate(hash[4], 25)) + ch + k[i] + (
+                w[i] = (i < 16) ? w[i] : (w[i - 16] + s0 + w[i - 7] + s1) | 0
+            )) | 0;
+            const maj = (hash[0] & hash[1]) ^ (hash[0] & hash[2]) ^ (hash[1] & hash[2]);
+            const temp2 = ((rightRotate(hash[0], 2) ^ rightRotate(hash[0], 13) ^ rightRotate(hash[0], 22)) + maj) | 0;
+            hash = [(temp1 + temp2) | 0].concat(hash);
+            hash[4] = (hash[4] + temp1) | 0;
+        }
+        for (i = 0; i < 8; i++) hash[i] = (hash[i] + oldHash[i]) | 0;
+    }
+    for (i = 0; i < 8; i++) {
+        for (j = 3; j + 1; j--) {
+            const b = (hash[i] >> (j * 8)) & 255;
+            result += ((b < 16) ? '0' : '') + b.toString(16);
+        }
+    }
+    return result.toUpperCase();
+}
+
+async function computeSHA256(message) {
+    if (window.crypto && window.crypto.subtle) {
+        try {
+            const msgBuffer = new TextEncoder().encode(message);
+            const hashBuffer = await window.crypto.subtle.digest('SHA-256', msgBuffer);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase();
+        } catch (e) {
+            // fallback
+        }
+    }
+    return sha256Pure(message);
+}
+
+
+// ==========================================
+// 3. INFALLIBLE PRNG (Mulberry32)
+// ==========================================
+function createPRNG(seed) {
+    let s = (Math.abs(Math.floor(seed)) || 123456789) >>> 0;
+    return function() {
+        s |= 0;
+        s = (s + 0x6D2B79F5) | 0;
+        let t = Math.imul(s ^ (s >>> 15), 1 | s);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+}
+
+function shuffleOptions(array, rng) {
+    const copy = array.map((item, originalIndex) => ({ ...item, originalIndex }));
+    for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(rng() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+    }
+    return copy;
+}
+
+
+// ==========================================
+// 4. 10 TECHNICAL CHALLENGES DEFINITION
+// ==========================================
+const CHALLENGES = [
+    {
+        id: 1,
+        ra: "📌 RA4/CE4.e-CE4.h - PROPIEDADES ACID Y TRANSACCIONES",
+        title: "Garantía de Atomicidad e Integridad en Pasarela de Cobro",
+        context: "Durante una compra simultánea de 3 artículos en la plataforma aMUzon, el servicio descuenta las 3 unidades de inventario. Inmediatamente después, ocurre una desconexión intempestiva con la pasarela bancaria antes de registrar el cobro en la tabla de facturación.",
+        diagram: `<div class="stage-title"><span>TRAZA DE CONCURRENCIA: CONEXIÓN BANCARIA CAÍDA</span><span>TRANSACCIÓN ATÓMICA</span></div>
+<pre class="code-snippet"><span class="code-keyword">BEGIN TRANSACTION;</span>
+  <span class="code-comment">-- Paso 1: Reserva de stock</span>
+  <span class="code-func">UPDATE</span> inventario <span class="code-func">SET</span> stock = stock - 3 <span class="code-func">WHERE</span> producto_id = 902;
+  
+  <span class="code-comment">-- Paso 2: Conexión externa con Pasarela aMUzon Pay</span>
+  <span class="code-keyword">&lt;&lt; ERROR: SOCKET_TIMEOUT_EXCEPTION (RED CAÍDA) &gt;&gt;</span>
+  <span class="code-comment">-- ¿Cómo debe proceder el gestor de la transacción?</span></pre>`,
+        prompt: "¿Cuál es la estructura de control transaccional que garantiza estrictamente la Atomicidad (propiedad 'A' de ACID), impidiendo que el inventario quede descontado si el cobro no se confirma?",
+        options: [
+            {
+                text: "Envolver la operativa en un bloque con control de errores que ejecute ROLLBACK de inmediato si el cobro falla, y emitir COMMIT únicamente si ambos pasos se completan con éxito.",
+                correct: true,
+                feedback: "¡Excelente! La propiedad de Atomicidad ('todo o nada') exige que si cualquier instrucción de la transacción falla, se invoque ROLLBACK para devolver la base de datos al estado íntegro previo."
+            },
+            {
+                text: "Activar AUTOCOMMIT ON para asegurar que el descuento de stock quede confirmado de inmediato y procesar el cobro en un proceso en segundo plano al día siguiente.",
+                correct: false,
+                feedback: "Incorrecto. Con AUTOCOMMIT cada sentencia es independiente; si el cobro falla, el stock ya se habrá perdido irrevocablemente, violando la consistencia del catálogo."
+            },
+            {
+                text: "Configurar el nivel de aislamiento en READ UNCOMMITTED para permitir que otros clientes usen el producto mientras se espera el pago.",
+                correct: false,
+                feedback: "Incorrecto. READ UNCOMMITTED no resuelve fallos de escritura ni garantiza atomicidad; provocaría lecturas sucias y ventas fraudulentas."
+            },
+            {
+                text: "Sustituir la transacción por una consulta UPDATE IGNORE y confiar en que la reconciliación nocturna cuadre el stock en almacén.",
+                correct: false,
+                feedback: "Incorrecto. El e-commerce de alta disponibilidad no puede tolerar desajustes físicos de inventario sin confirmación atómica."
+            }
+        ]
+    },
+    {
+        id: 2,
+        ra: "📌 RA4/CE4.e-CE4.h - NIVELES DE AISLAMIENTO SQL ESTÁNDAR",
+        title: "Selección del Nivel de Aislamiento Óptimo para Facturación Masiva",
+        context: "El departamento financiero de aMUzon genera informes en tiempo real mientras entran 50.000 operaciones por segundo. El nivel SERIALIZABLE satura la CPU por colisiones y abortos, pero READ UNCOMMITTED genera balances contables corruptos con ventas que nunca existieron.",
+        diagram: `<div class="stage-title"><span>MATRIZ COMPARATIVA DE ANOMALÍAS SQL ANSI/ISO</span><span>MVCC ENGINE</span></div>
+<pre class="code-snippet"><span class="code-keyword">Nivel Aislamiento</span>       <span class="code-highlight">Dirty Read</span>    <span class="code-highlight">Non-Repeatable</span>    <span class="code-highlight">Phantom Read</span>   <span class="code-highlight">Concurrencia</span>
+READ UNCOMMITTED        Sí            Sí                Sí             Máxima (Riesgosa)
+READ COMMITTED          No            Sí                Sí             Alta (Balanceada)
+REPEATABLE READ         No            No                Sí (en SQL92)  Media (Snapshot)
+SERIALIZABLE            No            No                No             Baja (Bloqueos)</pre>`,
+        prompt: "¿Qué nivel de aislamiento estándar ofrece el balance óptimo para emitir reportes contables sin lecturas sucias y permitiendo alta concurrencia mediante lecturas consistentes MVCC sin bloqueos de tabla?",
+        options: [
+            {
+                text: "READ COMMITTED: Garantiza que ninguna consulta observe cambios de transacciones no confirmadas, permitiendo alto throughput gracias a la concurrencia multiversión (MVCC).",
+                correct: true,
+                feedback: "¡Correcto! READ COMMITTED es el estándar por defecto en PostgreSQL y en motores de alto rendimiento. Evita Dirty Reads sin degradar la concurrencia."
+            },
+            {
+                text: "SERIALIZABLE: Obliga a todas las transacciones concurrentes a ejecutarse secuencialmente una tras otra, sin importar que se aborte el 85% de las compras.",
+                correct: false,
+                feedback: "Incorrecto. SERIALIZABLE elimina todas las anomalías pero impone un overhead descomunal y frecuentes abortos por fallos de serialización bajo 50K TPS."
+            },
+            {
+                text: "READ UNCOMMITTED: Porque al permitir Dirty Reads no necesita guardar snapshots ni verificar commits.",
+                correct: false,
+                feedback: "Incorrecto. Provocaría que el balance contable incluya carritos descartados y pagos fallidos."
+            },
+            {
+                text: "EXCLUSIVE LOCKING LEVEL: Una directiva propietaria que bloquea la totalidad del disco duro.",
+                correct: false,
+                feedback: "Incorrecto. No existe tal nivel de aislamiento estándar y paralizaría totalmente el negocio."
+            }
+        ]
+    },
+    {
+        id: 3,
+        ra: "📌 RA4/CE4.e-CE4.h - PREVENCIÓN DE DIRTY READS (LECTURAS SUCIAS)",
+        title: "Prevención de Lecturas Sucias en Monedero Digital aMUzon Pay",
+        context: "Transacción 1 (T1) aplica un cupón de 50€ al monedero de un cliente. Antes de confirmar, el sistema antifraude detecta el cupón duplicado y T1 ejecuta ROLLBACK. Sin embargo, Transacción 2 (T2) leyó el saldo intermedio e hizo un cobro utilizando dinero que nunca llegó a existir.",
+        diagram: `<div class="stage-title"><span>TRAZA TEMPORAL DE CONCURRENCIA: T1 vs T2</span><span>ANOMALÍA: DIRTY READ</span></div>
+<pre class="code-snippet">Tiempo  Transacción T1 (Promoción)                  Transacción T2 (Cobro en Carrito)
+------  ------------------------------------------  ------------------------------------------
+t1:     <span class="code-keyword">BEGIN;</span>
+t2:     <span class="code-func">UPDATE</span> clientes <span class="code-func">SET</span> saldo = saldo + 50;
+t3:                                                 <span class="code-comment">-- T2 lee saldo alterado (¡Lectura Sucia!)</span>
+t4:                                                 <span class="code-func">SELECT</span> saldo <span class="code-func">FROM</span> clientes; <span class="code-comment">-- ve +50€</span>
+t5:     <span class="code-keyword">ROLLBACK;</span> <span class="code-comment">-- ¡Cupón revocado!</span>
+t6:                                                 <span class="code-keyword">COMMIT;</span> <span class="code-comment">-- ¡Cobro realizado con saldo falso!</span></pre>`,
+        prompt: "¿Por qué ocurrió esta inconsistencia monetaria y cuál es la solución definitiva a nivel de base de datos?",
+        options: [
+            {
+                text: "Ocurrió porque T2 operaba bajo READ UNCOMMITTED, leyendo datos de la memoria intermedia antes del COMMIT; se erradica configurando el nivel de aislamiento en READ COMMITTED o superior.",
+                correct: true,
+                feedback: "¡Exacto! Bajo READ UNCOMMITTED se leen filas 'sucias' modificadas por transacciones activas. En READ COMMITTED, T2 solo lee versiones de tuplas ya confirmadas."
+            },
+            {
+                text: "Ocurrió porque la tabla clientes no disponía de un índice clustered en la columna 'saldo'.",
+                correct: false,
+                feedback: "Incorrecto. Los índices mejoran la velocidad de acceso, pero no resuelven anomalías de visibilidad transaccional ni lecturas sucias."
+            },
+            {
+                text: "Se debió a una Lectura Fantasma provocada por la inserción concurrente de tuplas en el espacio de claves libres.",
+                correct: false,
+                feedback: "Incorrecto. Una lectura fantasma implica aparición de nuevas filas que satisfacen un rango de búsqueda, no la lectura de una modificación abortada en una fila existente."
+            },
+            {
+                text: "T1 debió ejecutar FLUSH TABLES WITH READ LOCK antes de validar el cupón promocional.",
+                correct: false,
+                feedback: "Incorrecto. Bloquear todo el sistema para validar un cupón individual colapsaría la plataforma entera."
+            }
+        ]
+    },
+    {
+        id: 4,
+        ra: "📌 RA4/CE4.e-CE4.h - LECTURAS NO REPETIBLES Y LECTURAS FANTASMA",
+        title: "Detección y Mitigación de Lecturas Fantasma en Ofertas Flash",
+        context: "Durante la liquidación del Día del Sol en Murcia, una auditoría interna ejecuta dos veces la consulta 'SELECT COUNT(*) FROM productos WHERE precio < 20 AND stock > 0;'. En la primera consulta obtiene 80 filas. Durante la auditoría, otro proceso inserta 15 productos nuevos y confirma. En la segunda consulta, la auditoría obtiene 95 filas.",
+        diagram: `<div class="stage-title"><span>ANOMALÍA TRANSACCIONAL: LECTURA FANTASMA</span><span>RANGO DE PREDICADO</span></div>
+<pre class="code-snippet"><span class="code-comment">-- Transacción Auditoría (T1)</span>
+t1: <span class="code-keyword">BEGIN TRANSACTION;</span>
+t2: <span class="code-func">SELECT COUNT(*) FROM</span> productos <span class="code-func">WHERE</span> precio &lt; 20; <span class="code-comment">-- Retorna: 80 productos</span>
+    <span class="code-comment">-- Transacción T2 (Lote de Almacén)</span>
+t3: <span class="code-func">INSERT INTO</span> productos (nombre, precio, stock) <span class="code-func">VALUES</span> (...); <span class="code-keyword">COMMIT;</span>
+    <span class="code-comment">-- T1 reitera la consulta dentro de su misma transacción</span>
+t4: <span class="code-func">SELECT COUNT(*) FROM</span> productos <span class="code-func">WHERE</span> precio &lt; 20; <span class="code-comment">-- Retorna: 95 productos (¡Fantasma!)</span></pre>`,
+        prompt: "¿Qué anomalía concreta se ha manifestado y qué nivel de aislamiento garantiza una vista inmutable del rango de datos?",
+        options: [
+            {
+                text: "Es una Lectura Fantasma (aparición de nuevas tuplas que cumplen el predicado dentro de la misma transacción); se resuelve mediante REPEATABLE READ (con snapshot consistente) o SERIALIZABLE (con Gap Locks).",
+                correct: true,
+                feedback: "¡Muy bien analizado! La diferencia clave: Lectura No Repetible es la modificación/borrado de una fila existente ya leída; Lectura Fantasma es la inserción de nuevas filas en el predicado."
+            },
+            {
+                text: "Es una Pérdida de Actualización (Lost Update) mitigable exclusivamente mediante la cláusula DROP INDEX CONCURRENTLY.",
+                correct: false,
+                feedback: "Incorrecto. No se ha sobreescrito ninguna modificación de datos, sino que se han observado nuevas tuplas insertadas."
+            },
+            {
+                text: "Se trata de un Deadlock no resuelto que requiere reiniciar el demonio del SGBD.",
+                correct: false,
+                feedback: "Incorrecto. No ha habido ningún bloqueo mutuo ni proceso congelado; solo un cambio en el recuento de un SELECT concurrente."
+            },
+            {
+                text: "Es un error de hardware en el buffer pool que debe corregirse con una comprobación fsck del disco.",
+                correct: false,
+                feedback: "Incorrecto. Es una anomalía de concurrencia lógica contemplada en el estándar SQL."
+            }
+        ]
+    },
+    {
+        id: 5,
+        ra: "📌 RA4/CE4.g-CE4.h - PREVENCIÓN Y RESOLUCIÓN DE DEADLOCKS",
+        title: "Resolución de Interbloqueos (Deadlocks) por Orden Canónico",
+        context: "El monitor de bases de datos de aMUzon arroja alarmas continuas: 'ERROR: deadlock detected - Process 4519 waits for ShareLock on transaction 881; Process 4520 waits for ShareLock on transaction 880'. Dos transacciones compiten por las tablas 'pedidos' y 'usuarios' en orden inverso.",
+        diagram: `<div class="stage-title"><span>GRAFO DE ESPERA CIRCULAR (WAIT-FOR GRAPH)</span><span>DEADLOCK MUTUO</span></div>
+<pre class="code-snippet">  [Transacción A: Checkout]               [Transacción B: Facturación]
+          │                                           │
+  Bloquea fila en: <strong>PEDIDOS (id=50)</strong>            Bloquea fila en: <strong>USUARIOS (id=12)</strong>
+          │                                           │
+  Solicita bloqueo en: <strong>USUARIOS (id=12)</strong>       Solicita bloqueo en: <strong>PEDIDOS (id=50)</strong>
+          ▼                                           ▼
+  <strong>ESPERANDO A TRANSACCIÓN B...</strong>                <strong>ESPERANDO A TRANSACCIÓN A...</strong>
+          └───────────► [ BLOQUEO MUTUO / ABORTO ] ◄──────────┘</pre>`,
+        prompt: "¿Cuál es la mejor práctica de ingeniería de software para prevenir de raíz la formación de estos interbloqueos?",
+        options: [
+            {
+                text: "Establecer un orden canónico global y estricto de acceso a recursos: todas las transacciones deben bloquear y actualizar las tablas siempre en la misma secuencia (por ejemplo, siempre usuarios y después pedidos).",
+                correct: true,
+                feedback: "¡Exacto! El interbloqueo se sustenta en la espera circular. Si todos los procesos adquieren recursos en el mismo orden lineal, la formación de ciclos en el grafo de espera es matemáticamente imposible."
+            },
+            {
+                text: "Disminuir el timeout de interbloqueo a 1 milisegundo para que una transacción muera inmediatamente antes de intentar bloquear.",
+                correct: false,
+                feedback: "Incorrecto. No previene el deadlock; solo aumenta la tasa de fallos de los clientes y el consumo de CPU por reintentos constantes."
+            },
+            {
+                text: "Eliminar las claves primarias de ambas tablas para que las filas no tengan identificador exclusivo de cerrojo.",
+                correct: false,
+                feedback: "Incorrecto. Destruiría la integridad referencial y obligaría a la base de datos a hacer bloqueos de tabla completa."
+            },
+            {
+                text: "Encapsular cada consulta en un bucle infinito en el backend hasta que el recurso se libere por milagro.",
+                correct: false,
+                feedback: "Incorrecto. Provocaría consumo del 100% de CPU y saturación total de conexiones en el pool."
+            }
+        ]
+    },
+    {
+        id: 6,
+        ra: "📌 RA4/CE4.g-CE4.h - CONTROL DE CONCURRENCIA PESIMISTA",
+        title: "Bloqueo Pesimista Explícito con SELECT ... FOR UPDATE",
+        context: "Solo queda 1 unidad en almacén de una consola de última generación a precio de coste. Dos usuarios (A y B) pulsan 'Comprar' en la misma milésima de segundo. Ambas sesiones leen stock=1, calculan 1-1=0 y guardan stock=0. aMUzon ha vendido 2 unidades teniendo solo 1 (stock físico resultante: -1).",
+        diagram: `<div class="stage-title"><span>CONDICIÓN DE CARRERA: LOST UPDATE / SOBREVENTA</span><span>SELECT FOR UPDATE</span></div>
+<pre class="code-snippet">Sesión A (Cliente Murcia)                   Sesión B (Cliente Cartagena)
+----------------------------------------    ----------------------------------------
+<span class="code-keyword">BEGIN;</span>                                      <span class="code-keyword">BEGIN;</span>
+<span class="code-func">SELECT</span> stock <span class="code-func">FROM</span> prod <span class="code-func">WHERE</span> id = 99; <span class="code-comment">-- 1</span>    <span class="code-func">SELECT</span> stock <span class="code-func">FROM</span> prod <span class="code-func">WHERE</span> id = 99; <span class="code-comment">-- 1</span>
+<span class="code-func">UPDATE</span> prod <span class="code-func">SET</span> stock = 0 <span class="code-func">WHERE</span> id=99;     <span class="code-func">UPDATE</span> prod <span class="code-func">SET</span> stock = 0 <span class="code-func">WHERE</span> id=99;
+<span class="code-keyword">COMMIT;</span> <span class="code-comment">-- ¡Stock real = -1!</span>                <span class="code-keyword">COMMIT;</span> <span class="code-comment">-- ¡Sobreventa confirmada!</span></pre>`,
+        prompt: "¿Cómo se debe refactorizar la consulta de comprobación para garantizar exclusión mutua pesimista sobre la tupla de inventario?",
+        options: [
+            {
+                text: "SELECT stock FROM productos WHERE id = 99 FOR UPDATE; dentro del bloque transaccional, bloqueando la fila exclusivamente hasta el COMMIT o ROLLBACK.",
+                correct: true,
+                feedback: "¡Brillante! FOR UPDATE adquiere un bloqueo exclusivo a nivel de fila (Exclusive Row Lock). La Sesión B quedará pausada en su SELECT hasta que la Sesión A confirme, viendo ya stock=0 e impidiendo la sobreventa."
+            },
+            {
+                text: "SELECT stock FROM productos WHERE id = 99 LOCK IN SHARE MODE; permitiendo que ambos lean pero nadie modifique.",
+                correct: false,
+                feedback: "Incorrecto. Si ambas sesiones adquieren un bloqueo compartido (Share Lock) e intentan luego hacer UPDATE, ambas entrarán en un Deadlock mutuo."
+            },
+            {
+                text: "SELECT stock FROM productos WHERE id = 99 WITH (NOLOCK); para acelerar la lectura ignorando todos los bloqueos existentes.",
+                correct: false,
+                feedback: "Incorrecto. NOLOCK permite lecturas sucias y garantiza la sobreventa masiva bajo concurrencia."
+            },
+            {
+                text: "Reescribir la columna stock como VARCHAR(10) para evitar desbordamiento numérico.",
+                correct: false,
+                feedback: "Incorrecto. El tipo de datos de almacenamiento textual no altera las condiciones de carrera del motor transaccional."
+            }
+        ]
+    },
+    {
+        id: 7,
+        ra: "📌 RA4/CE4.g-CE4.h - PROCESAMIENTO CONCURRENTE DE COLAS DE ENVÍOS",
+        title: "Desacoplamiento de Workers con FOR UPDATE SKIP LOCKED",
+        context: "aMUzon tiene 12 procesos background (workers) leyendo la tabla 'envios_urgentes'. Al usar 'SELECT * FROM envios_urgentes WHERE estado = 'PENDIENTE' LIMIT 5 FOR UPDATE;', todos los workers intentan bloquear los mismos 5 primeros registros. 11 workers quedan congelados en espera de cerrojo (Lock Contention).",
+        diagram: `<div class="stage-title"><span>DISPATCHER DE COLAS MASIVAS EN PARALELO</span><span>SKIP LOCKED PIPELINE</span></div>
+<pre class="code-snippet">Worker 1: <span class="code-func">SELECT</span> * <span class="code-func">FROM</span> envios <span class="code-func">WHERE</span> estado=<span class="code-string">'PEND'</span> <span class="code-func">LIMIT</span> 2 <span class="code-keyword">FOR UPDATE SKIP LOCKED;</span>
+          └── Adquiere filas #1 y #2 de forma exclusiva e inmediata.
+
+Worker 2: <span class="code-func">SELECT</span> * <span class="code-func">FROM</span> envios <span class="code-func">WHERE</span> estado=<span class="code-string">'PEND'</span> <span class="code-func">LIMIT</span> 2 <span class="code-keyword">FOR UPDATE SKIP LOCKED;</span>
+          └── Omite automáticamente #1 y #2 (ya bloqueadas) y adquiere #3 y #4 sin esperar.</pre>`,
+        prompt: "¿Qué ventaja determinante aporta la cláusula SKIP LOCKED frente a FOR UPDATE ordinario en el diseño de colas asíncronas en SGBDs modernos?",
+        options: [
+            {
+                text: "Permite a cada worker saltarse de forma atómica y no bloqueante las filas ya bloqueadas por otros hilos, consumiendo de inmediato el siguiente lote disponible sin generar colas de espera ni timeouts.",
+                correct: true,
+                feedback: "¡Excelente! SKIP LOCKED convierte una tabla SQL en una cola de mensajes altamente eficiente y libre de contención, perfecta para arquitecturas de microservicios."
+            },
+            {
+                text: "Hace que los workers ignoren la integridad referencial y puedan borrar pedidos de clientes sin avisar.",
+                correct: false,
+                feedback: "Incorrecto. La integridad referencial y las claves foráneas siguen vigentes; solo afecta a la selección de filas bloqueadas."
+            },
+            {
+                text: "Elimina la necesidad de usar transacciones, permitiendo que las consultas se ejecuten fuera del log de transacciones.",
+                correct: false,
+                feedback: "Incorrecto. SKIP LOCKED requiere obligatoriamente estar dentro de una transacción para mantener el bloqueo de las filas reservadas."
+            },
+            {
+                text: "Es equivalente a NOWAIT, haciendo que todos los workers fallen inmediatamente y lancen una excepción si encuentran una fila ocupada.",
+                correct: false,
+                feedback: "Incorrecto. NOWAIT aborta con error; SKIP LOCKED es inteligente: no aborta, sino que ignora las ocupadas y busca las libres."
+            }
+        ]
+    },
+    {
+        id: 8,
+        ra: "📌 RA4/CE4.f - GESTIÓN DE SAVEPOINTS Y TRANSACCIONES COMPLEJAS",
+        title: "Cancelaciones Parciales en Lotes Batch con SAVEPOINT",
+        context: "Un script nocturno sincroniza 1.000 paquetes de mensajería en un solo bloque transaccional. En el paquete 720 ocurre un error de validación (dirección postal errónea). No se debe perder el trabajo de los 719 anteriores ni detener el procesamiento de los 280 restantes.",
+        diagram: `<div class="stage-title"><span>ÁRBOL TRANSACCIONAL: PUNTO DE SALVAGUARDA</span><span>SUBTRANSACCIÓN PARCIAL</span></div>
+<pre class="code-snippet"><span class="code-keyword">BEGIN;</span>
+  <span class="code-comment">-- Paquetes 1 al 719 procesados satisfactoriamente...</span>
+  <span class="code-keyword">SAVEPOINT</span> punto_paquete_720;
+    <span class="code-func">INSERT INTO</span> logistica_envios <span class="code-func">VALUES</span> (720, <span class="code-string">'DIR_INVÁLIDA'</span>); <span class="code-comment">-- ¡Fallo de CHECK!</span>
+    <span class="code-comment">-- Al capturar el fallo:</span>
+  <span class="code-keyword">ROLLBACK TO SAVEPOINT</span> punto_paquete_720; <span class="code-comment">-- Solo se revierte el paquete 720</span>
+  <span class="code-comment">-- Se continúa con los paquetes 721 al 1000...</span>
+<span class="code-keyword">COMMIT;</span> <span class="code-comment">-- Se confirman 999 paquetes íntegros</span></pre>`,
+        prompt: "¿Cuál es el mecanismo y sintaxis estándar en SQL para descartar selectivamente una operación errónea sin abortar la transacción principal?",
+        options: [
+            {
+                text: "Crear un punto de guardado con SAVEPOINT nombre_punto antes de cada operación dudosa y, si ocurre una excepción, ejecutar ROLLBACK TO SAVEPOINT nombre_punto, continuando el flujo hasta el COMMIT general.",
+                correct: true,
+                feedback: "¡Respuesta impecable! Los SAVEPOINTs permiten crear subtransacciones anidadas o puntos de restauración dentro de una transacción activa sin invalidar las operaciones previas."
+            },
+            {
+                text: "Emitir COMMIT WORK AND CHAIN ignorando todas las restricciones de comprobación de la base de datos.",
+                correct: false,
+                feedback: "Incorrecto. COMMIT confirmaría los datos erróneos en la base de datos violando la integridad de dominio."
+            },
+            {
+                text: "El estándar SQL prohíbe cancelaciones parciales: siempre es obligatorio abortar el 100% de la transacción con ROLLBACK general.",
+                correct: false,
+                feedback: "Incorrecto. El estándar SQL-92 y posteriores definen formalmente el estándar SAVEPOINT precisamente para resolver este problema."
+            },
+            {
+                text: "Cerrar y abrir la conexión TCP en cada fila para que el sistema operativo limpie la memoria.",
+                correct: false,
+                feedback: "Incorrecto. Abrir 1.000 conexiones TCP colapsaría los recursos del servidor y aumentaría la latencia exponencialmente."
+            }
+        ]
+    },
+    {
+        id: 9,
+        ra: "📌 RA4/CE4.e-CE4.h - OPTIMIZACIÓN DEL WAL Y REDO LOG",
+        title: "Optimización de I/O en Write-Ahead Logging (WAL / Redo Log)",
+        context: "Durante el pico de compras en aMUzon, la CPU está al 30%, pero la latencia de las consultas de escritura supera los 4.000 ms. Las métricas de almacenamiento revelan que el 85% del tiempo de respuesta se gasta en llamadas fsync() síncronas al disco duro en cada COMMIT para garantizar la Durabilidad ('D' de ACID).",
+        diagram: `<div class="stage-title"><span>FLUJO DE PERSISTENCIA: WAL BUFFER & FSYNC</span><span>DURABILIDAD VS RENDIMIENTO</span></div>
+<pre class="code-snippet">Sesión 1: COMMIT ──┐
+Sesión 2: COMMIT ──┼──► [ Buffer WAL ] ──► <span class="code-func">Group Commit (fsync)</span> ──► Disco NVMe
+Sesión 3: COMMIT ──┘    (Agrupamiento)      (1 sola escritura física)
+                        
+Parámetros clave: <span class="code-highlight">commit_delay</span>, <span class="code-highlight">commit_siblings</span>, <span class="code-highlight">wal_buffers</span></pre>`,
+        prompt: "¿Qué estrategia de arquitectura de almacenamiento alivia la saturación de I/O por escrituras en el log transaccional sin poner en riesgo la consistencia interna del motor?",
+        options: [
+            {
+                text: "Configurar el agrupamiento de transacciones (Group Commit) mediante parámetros como commit_delay/commit_siblings o usar commit asíncrono en operaciones no financieras para vaciar múltiples transacciones en un solo fsync.",
+                correct: true,
+                feedback: "¡Gran dominio técnico! Group Commit agrupa las escrituras en disco de múltiples sesiones concurrentes en una única operación de I/O física, multiplicando el rendimiento por diez."
+            },
+            {
+                text: "Deshabilitar totalmente el WAL y pedir al motor que mantenga todas las transacciones únicamente en memoria RAM volátil sin escribir en disco.",
+                correct: false,
+                feedback: "Incorrecto. Si se cae la energía o falla el sistema operativo, se perderían irreversiblemente todos los pedidos de los clientes (violación total de Durabilidad)."
+            },
+            {
+                text: "Aumentar el nivel de aislamiento a SERIALIZABLE para que menos clientes puedan comprar a la vez.",
+                correct: false,
+                feedback: "Incorrecto. Eso reduciría las compras pero no optimizaría la eficiencia de almacenamiento; solo destruiría el negocio de aMUzon."
+            },
+            {
+                text: "Eliminar las claves foráneas e índices para que el WAL no tenga que registrar metadatos.",
+                correct: false,
+                feedback: "Incorrecto. Las claves foráneas protegen la consistencia lógica y no eliminan la necesidad de registrar los INSERT/UPDATE en el log."
+            }
+        ]
+    },
+    {
+        id: 10,
+        ra: "📌 RA4/CE4.e-CE4.g-CE4.h - AUDITORÍA Y ARQUITECTURA TRANSACCIONAL INTEGRAL",
+        title: "Plan Maestro de Resiliencia Concurrente Bajo 50.000 TPS",
+        context: "La consola del SOC aMUzon muestra un colapso en cadena: interbloqueos en el catálogo, sobreventa en carritos, contención masiva en colas de envío y cuellos de botella por fsync en el log. Como Arquitecto/a Senior, debes desplegar el plan de refactorización definitivo.",
+        diagram: `<div class="stage-title"><span>SOC NOC GLOBAL DASHBOARD // AMUZON ARCHITECTURE</span><span>PLAN MAESTRO</span></div>
+<pre class="code-snippet">┌────────────────────────────────────────────────────────────────────────┐
+│  REFACTORIZACIÓN ARQUITECTÓNICA DE ALTA CONCURRENCIA (50.000 TPS)       │
+├────────────────────────────────────────────────────────────────────────┤
+│  1. Catálogo / Búsquedas:    <span class="code-keyword">READ COMMITTED + MVCC</span> (Sin bloqueos)     │
+│  2. Stock Crítico:           <span class="code-keyword">SELECT ... FOR UPDATE</span> (Exclusión mutua)   │
+│  3. Colas Despacho Workers:  <span class="code-keyword">FOR UPDATE SKIP LOCKED</span> (Zero contention) │
+│  4. Acceso Multirregistro:   <span class="code-keyword">Orden Canónico Estricto</span> (Cero Deadlocks) │
+│  5. Persistencia WAL:        <span class="code-keyword">Group Commit Optimizado</span> (I/O equilibrado)│
+└────────────────────────────────────────────────────────────────────────┘</pre>`,
+        prompt: "¿Cuál es el conjunto sinérgico de medidas que resuelve integralmente todas las fallas sin comprometer la integridad de datos ni derribar el servidor?",
+        options: [
+            {
+                text: "Implementar SELECT ... FOR UPDATE en stock crítico, colas desacopladas con SKIP LOCKED, aislamiento READ COMMITTED con MVCC, orden canónico en transacciones para erradicar deadlocks y Group Commit en el WAL.",
+                correct: true,
+                feedback: "¡Extraordinario! Has unificado todos los principios clave de concurrencia y transacciones en bases de datos relacionales. El sistema aMUzon recupera su estabilidad con contención inferior al 2%."
+            },
+            {
+                text: "Migrar todas las bases de datos a archivos de texto plano CSV y acceder a ellos mediante scripts bash ejecutados por cron.",
+                correct: false,
+                feedback: "Incorrecto. Los archivos CSV carecen de transacciones, bloqueos de fila, propiedades ACID y control de concurrencia alguno."
+            },
+            {
+                text: "Aplicar FLUSH TABLES WITH READ LOCK globalmente durante toda la campaña de ventas y permitir el paso a un único cliente cada vez.",
+                correct: false,
+                feedback: "Incorrecto. Destruiría la concurrencia, transformando una plataforma global en un cuello de botella analógico inútil."
+            },
+            {
+                text: "Poner isolation level SERIALIZABLE en todas las consultas y elevar el timeout de lock a 30 minutos.",
+                correct: false,
+                feedback: "Incorrecto. Provocaría bloqueos en cascada, desconexiones masivas de usuarios y la quiebra operativa de la compañía."
+            }
+        ]
+    }
+];
+
+
+// ==========================================
+// 5. IMMUTABLE STATE MACHINE (GameState)
+// ==========================================
+const GameState = {
+    studentName: "",
+    studentId: "",
+    seed: 1234,
+    currentChallengeIndex: 0,
+    score: 0,
+    maxScore: 1000,
+    cpuStress: 99.4,
+    timeRemaining: 0, // elapsed time in seconds
+    timerInterval: null,
+    answersHistory: [],
+    isFinished: false,
+    prng: null,
+    currentShuffledOptions: []
+};
+
+// Seed helper
+function generateRandomSeed() {
+    const s = Math.floor(1000 + Math.random() * 9000);
+    const input = document.getElementById('student-seed');
+    if (input) input.value = s;
+    sound.playClick();
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+    generateRandomSeed();
+    const startButton = document.getElementById('btn-start-simulation');
+    const loginInputs = document.querySelectorAll('#form-login input');
+
+    if (startButton) {
+        startButton.addEventListener('click', startGame);
+    }
+
+    loginInputs.forEach(input => {
+        input.addEventListener('keydown', event => {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                startGame();
+            }
+        });
+    });
+});
+
+
+// ==========================================
+// 6. SCREEN TRANSITION & GAME INITIALIZATION
+// ==========================================
+function switchScreen(screenId) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    const target = document.getElementById(screenId);
+    if (target) {
+        target.classList.add('active');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+}
+
+function startGame() {
+    const nameInput = document.getElementById('student-name');
+    const idInput = document.getElementById('student-id');
+    const seedInput = document.getElementById('student-seed');
+
+    if (!nameInput || !idInput || !seedInput) return;
+
+    const name = nameInput.value.trim();
+    const id = idInput.value.trim().toUpperCase();
+    const seed = parseInt(seedInput.value, 10) || 1234;
+
+    const invalidInput = [nameInput, idInput, seedInput].find(input => !input.checkValidity());
+    if (!name || !id || invalidInput) {
+        if (invalidInput) invalidInput.reportValidity();
+        else alert("Por favor, introduce tu Nombre y DNI/Expediente.");
+        return;
+    }
+
+    sound.playClick();
+
+    GameState.studentName = name;
+    GameState.studentId = id;
+    GameState.seed = seed;
+    GameState.currentChallengeIndex = 0;
+    GameState.score = 0;
+    GameState.cpuStress = 99.4;
+    GameState.timeRemaining = 0;
+    GameState.answersHistory = [];
+    GameState.isFinished = false;
+    GameState.prng = createPRNG(seed);
+
+    // Update HUD
+    document.getElementById('hud-student-id').textContent = id;
+    document.getElementById('hud-score').textContent = `0 / ${GameState.maxScore}`;
+    updateStressUI();
+
+    // Start Timer
+    if (GameState.timerInterval) clearInterval(GameState.timerInterval);
+    GameState.timerInterval = setInterval(() => {
+        GameState.timeRemaining++;
+        const mins = Math.floor(GameState.timeRemaining / 60).toString().padStart(2, '0');
+        const secs = (GameState.timeRemaining % 60).toString().padStart(2, '0');
+        const timerEl = document.getElementById('hud-timer');
+        if (timerEl) timerEl.textContent = `${mins}:${secs}`;
+    }, 1000);
+
+    switchScreen('screen-game');
+    loadChallenge(0);
+}
+
+function updateStressUI() {
+    const stressEl = document.getElementById('hud-stress-val');
+    const barEl = document.getElementById('hud-stress-bar');
+    if (stressEl) {
+        stressEl.textContent = `${GameState.cpuStress.toFixed(1)}%`;
+        if (GameState.cpuStress < 20) {
+            stressEl.style.color = 'var(--green)';
+        } else if (GameState.cpuStress < 60) {
+            stressEl.style.color = 'var(--orange)';
+        } else {
+            stressEl.style.color = 'var(--red)';
+        }
+    }
+    if (barEl) {
+        barEl.style.width = `${Math.max(2, Math.min(100, GameState.cpuStress))}%`;
+    }
+}
+
+
+// ==========================================
+// 7. CHALLENGE LOADER (Strict Safeness & DOM Hygiene)
+// ==========================================
+function loadChallenge(index) {
+    try {
+        if (index >= CHALLENGES.length) {
+            // Guaranteed clean transition to results
+            if (GameState.timerInterval) {
+                clearInterval(GameState.timerInterval);
+                GameState.timerInterval = null;
+            }
+            GameState.isFinished = true;
+            renderResultsScreen();
+            return;
+        }
+
+        GameState.currentChallengeIndex = index;
+        const challenge = CHALLENGES[index];
+        const container = document.getElementById('challenge-container');
+        if (!container) return;
+
+        // Clean DOM
+        container.innerHTML = '';
+
+        // Deterministic PRNG for options shuffling
+        const challengeRng = createPRNG(GameState.seed + index * 101);
+        const shuffled = shuffleOptions(challenge.options, challengeRng);
+        GameState.currentShuffledOptions = shuffled;
+
+        // Update RA Badge in HUD
+        const raBadgeEl = document.getElementById('hud-ra-badge');
+        if (raBadgeEl) raBadgeEl.textContent = challenge.ra;
+
+        // Build Challenge DOM
+        const challengeCard = document.createElement('div');
+        challengeCard.className = 'challenge-box';
+
+        challengeCard.innerHTML = `
+            <div class="challenge-header">
+                <span class="ra-badge">${escapeHTML(challenge.ra)}</span>
+                <div class="challenge-title-group">
+                    <h2>${escapeHTML(challenge.title)}</h2>
+                    <span class="challenge-counter">RETO ${index + 1} / ${CHALLENGES.length}</span>
+                </div>
+            </div>
+
+            <div class="challenge-context-box">
+                ${challenge.context}
+            </div>
+
+            <div class="interactive-stage">
+                ${challenge.diagram}
+            </div>
+
+            <div class="question-prompt">
+                ${escapeHTML(challenge.prompt)}
+            </div>
+
+            <div class="options-grid" id="options-grid">
+                <!-- Option buttons injected below -->
+            </div>
+
+            <div class="feedback-panel" id="feedback-panel">
+                <div class="feedback-title" id="feedback-title"></div>
+                <div class="feedback-body" id="feedback-body"></div>
+            </div>
+
+            <button class="btn-next" id="btn-next-challenge" onclick="nextChallenge()">
+                <span>CONTINUAR AL RETO SIGUIENTE ▶</span>
+            </button>
+        `;
+
+        container.appendChild(challengeCard);
+
+        const optionsGrid = document.getElementById('options-grid');
+        const letterBadges = ['A', 'B', 'C', 'D'];
+
+        shuffled.forEach((opt, optIndex) => {
+            const btn = document.createElement('button');
+            btn.className = 'option-btn';
+            btn.type = 'button';
+            btn.innerHTML = `
+                <span class="option-badge">${letterBadges[optIndex] || (optIndex + 1)}</span>
+                <span class="option-text">${escapeHTML(opt.text)}</span>
+            `;
+            btn.addEventListener('click', () => handleOptionSelect(optIndex, opt, shuffled));
+            optionsGrid.appendChild(btn);
+        });
+
+    } catch (err) {
+        console.error("Critical error in loadChallenge:", err);
+        showRecoveryModal(`Error al cargar el reto #${index + 1}: ${err.message}`);
+    }
+}
+
+function handleOptionSelect(selectedIndex, chosenOption, allOptions) {
+    // Prevent double clicking
+    const allButtons = document.querySelectorAll('.option-btn');
+    allButtons.forEach(b => b.disabled = true);
+
+    const isCorrect = chosenOption.correct;
+    const pointsAwarded = isCorrect ? 100 : 0;
+    GameState.score += pointsAwarded;
+
+    // Reduce stress on correct answer
+    if (isCorrect) {
+        GameState.cpuStress = Math.max(2.4, GameState.cpuStress - 9.7);
+        sound.playSuccess();
+    } else {
+        sound.playError();
+    }
+    updateStressUI();
+
+    // Update HUD Score
+    const scoreEl = document.getElementById('hud-score');
+    if (scoreEl) scoreEl.textContent = `${GameState.score} / ${GameState.maxScore}`;
+
+    // Visual button states
+    allButtons.forEach((btn, idx) => {
+        if (idx === selectedIndex) {
+            btn.classList.add(isCorrect ? 'selected-correct' : 'selected-incorrect');
+        } else if (allOptions[idx].correct) {
+            btn.classList.add('reveal-correct');
+        }
+    });
+
+    // Record answer
+    GameState.answersHistory.push({
+        challengeIndex: GameState.currentChallengeIndex,
+        questionTitle: CHALLENGES[GameState.currentChallengeIndex].title,
+        selectedIndex: selectedIndex,
+        selectedOptionText: chosenOption.text,
+        isCorrect: isCorrect,
+        points: pointsAwarded
+    });
+
+    // Display Feedback
+    const fbPanel = document.getElementById('feedback-panel');
+    const fbTitle = document.getElementById('feedback-title');
+    const fbBody = document.getElementById('feedback-body');
+    const nextBtn = document.getElementById('btn-next-challenge');
+
+    if (fbPanel && fbTitle && fbBody && nextBtn) {
+        fbPanel.className = `feedback-panel ${isCorrect ? 'correct' : 'incorrect'}`;
+        fbTitle.innerHTML = isCorrect ? '✅ RESOLUCIÓN CORRECTA (+100 PTS)' : '❌ SOLUCIÓN INCORRECTA (0 PTS)';
+        fbBody.innerHTML = escapeHTML(chosenOption.feedback);
+        fbPanel.style.display = 'block';
+
+        if (GameState.currentChallengeIndex + 1 >= CHALLENGES.length) {
+            nextBtn.innerHTML = '<span>FINALIZAR AUDITORÍA Y GENERAR CERTIFICADO ▶</span>';
+        }
+        nextBtn.style.display = 'flex';
+    }
+}
+
+function nextChallenge() {
+    sound.playClick();
+    loadChallenge(GameState.currentChallengeIndex + 1);
+}
+
+function retryCurrentChallenge() {
+    hideRecoveryModal();
+    loadChallenge(GameState.currentChallengeIndex);
+}
+
+function showRecoveryModal(msg) {
+    const modal = document.getElementById('error-recovery-modal');
+    const msgEl = document.getElementById('error-modal-message');
+    if (msgEl) msgEl.textContent = msg;
+    if (modal) modal.style.display = 'flex';
+}
+
+function hideRecoveryModal() {
+    const modal = document.getElementById('error-recovery-modal');
+    if (modal) modal.style.display = 'none';
+}
+
+
+// ==========================================
+// 8. RESULTS SCREEN & CRYPTOGRAPHIC CVHC
+// ==========================================
+async function renderResultsScreen() {
+    try {
+        switchScreen('screen-results');
+        sound.playVictory();
+
+        // Calculate metrics
+        const score = GameState.score;
+        const grade = (score / 100).toFixed(1);
+        const mins = Math.floor(GameState.timeRemaining / 60);
+        const secs = GameState.timeRemaining % 60;
+        const timeFormatted = `${mins}m ${secs}s`;
+
+        // Stress reduction
+        const reductionPct = ((score / GameState.maxScore) * 97.0).toFixed(1);
+
+        // Update UI Cards
+        document.getElementById('res-score').innerHTML = `${score} <span class="unit">/ 1000 pts</span>`;
+        document.getElementById('res-grade').innerHTML = `${grade} <span class="unit">/ 10.0</span>`;
+        document.getElementById('res-stress-reduction').innerHTML = `${reductionPct}% <span class="unit">aliviado</span>`;
+        document.getElementById('res-time').innerHTML = `${mins}:${secs.toString().padStart(2, '0')} <span class="unit">min</span>`;
+
+        // Update Student details in Certificate
+        document.getElementById('cert-student-name').textContent = GameState.studentName.toUpperCase();
+        document.getElementById('cert-student-dni').textContent = GameState.studentId.toUpperCase();
+        document.getElementById('cert-student-seed').textContent = `#${GameState.seed}`;
+
+        // Header status change
+        document.getElementById('header-cluster-status').innerHTML = `<span class="pulse-dot"></span> ESTABILIZADO (ESTRÉS: ${GameState.cpuStress.toFixed(1)}%)`;
+
+        // Answer code string (0 to 3 per challenge)
+        const answersStr = GameState.answersHistory.map(a => a.selectedIndex).join('');
+
+        // Compute Antifraud Hash Digest
+        const cleanName = GameState.studentName.trim().toUpperCase();
+        const cleanDni = GameState.studentId.trim().toUpperCase();
+        const signatureKey = decodeEmbeddedValue([26, 22, 14, 1, 20, 21, 4, 24, 20, 21, 24, 14, 9, 9, 30, 21, 24, 2, 4, 8, 30, 24, 9, 30, 15, 4, 105, 107, 105, 109]);
+        const stringBase = `${cleanName}|${cleanDni}|${GameState.seed}|${score}|${GameState.timeRemaining}|${signatureKey}`;
+        
+        const fullHash = await computeSHA256(stringBase);
+        const shortHash = fullHash.substring(0, 8).toUpperCase();
+
+        // CVHC Format: AMZ-Q4-2026-S[Seed]-P[Score]-T[Time]-R[Answers]-[Hash]
+        const cvhc = `AMZ-Q4-2026-S${GameState.seed}-P${score}-T${GameState.timeRemaining}-R${answersStr}-${shortHash}`;
+        document.getElementById('cvhc-code-text').textContent = cvhc;
+
+        // Ensure Advance Key Display is populated
+        const advanceKeyEl = document.getElementById('advanceKeyDisplay');
+        if (advanceKeyEl) {
+            advanceKeyEl.textContent = ADVANCE_KEY;
+        }
+
+        // Render Detailed History List
+        const historyContainer = document.getElementById('results-history-list');
+        if (historyContainer) {
+            historyContainer.innerHTML = '';
+            GameState.answersHistory.forEach((ans, idx) => {
+                const item = document.createElement('div');
+                item.className = `history-item ${ans.isCorrect ? 'correct' : 'incorrect'}`;
+                item.innerHTML = `
+                    <div class="history-info">
+                        <span class="history-title">Reto ${idx + 1}: ${escapeHTML(ans.questionTitle)}</span>
+                        <span class="history-subtitle">Elección: ${escapeHTML(ans.selectedOptionText)}</span>
+                    </div>
+                    <span class="history-score-badge ${ans.isCorrect ? 'correct' : 'incorrect'}">
+                        ${ans.isCorrect ? '+100 PTS (CORRECTO)' : '0 PTS (FALLIDO)'}
+                    </span>
+                `;
+                historyContainer.appendChild(item);
+            });
+        }
+
+    } catch (e) {
+        console.error("Error rendering results screen:", e);
+        showRecoveryModal("Fallo al generar el certificado final. Por favor, reintenta.");
+    }
+}
+
+function copyCVHC() {
+    const codeEl = document.getElementById('cvhc-code-text');
+    if (!codeEl) return;
+    const text = codeEl.textContent.trim();
+
+    navigator.clipboard.writeText(text).then(() => {
+        sound.playClick();
+        const toast = document.getElementById('copy-toast');
+        if (toast) {
+            toast.style.display = 'inline-block';
+            setTimeout(() => { toast.style.display = 'none'; }, 3000);
+        }
+    }).catch(() => {
+        // Fallback for file:// context if clipboard API is restricted
+        const temp = document.createElement('textarea');
+        temp.value = text;
+        document.body.appendChild(temp);
+        temp.select();
+        document.execCommand('copy');
+        document.body.removeChild(temp);
+        sound.playClick();
+        const toast = document.getElementById('copy-toast');
+        if (toast) {
+            toast.style.display = 'inline-block';
+            setTimeout(() => { toast.style.display = 'none'; }, 3000);
+        }
+    });
+}
+
+// ==========================================
+// 9. CLAVE DOCENTE PARA AVANZAR AL SIGUIENTE RETO
+// ==========================================
+const ADVANCE_KEY = decodeEmbeddedValue([58, 54, 14, 33, 107, 53, 23, 107, 24, 16, 105, 107, 105, 109]);
+
+function copyAdvanceKey() {
+    const btn = document.getElementById('btnCopyAdvanceKey');
+    const originalHtml = btn ? btn.innerHTML : '<span>📋 COPIAR CLAVE DE ACCESO</span>';
+
+    const onSuccess = () => {
+        if (typeof sound !== 'undefined' && sound.playClick) {
+            sound.playClick();
+        }
+        if (btn) {
+            btn.classList.add('copied');
+            btn.innerHTML = '<span>✔ ¡CLAVE COPIADA!</span>';
+            setTimeout(() => {
+                btn.classList.remove('copied');
+                btn.innerHTML = originalHtml;
+            }, 2500);
+        }
+    };
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(ADVANCE_KEY).then(onSuccess).catch(() => {
+            fallbackCopyText(ADVANCE_KEY, onSuccess);
+        });
+    } else {
+        fallbackCopyText(ADVANCE_KEY, onSuccess);
+    }
+}
+
+function fallbackCopyText(text, callback) {
+    try {
+        const temp = document.createElement('textarea');
+        temp.value = text;
+        temp.style.position = 'fixed';
+        temp.style.opacity = '0';
+        document.body.appendChild(temp);
+        temp.select();
+        document.execCommand('copy');
+        document.body.removeChild(temp);
+        if (callback) callback();
+    } catch (err) {
+        console.error("Fallback copy failed:", err);
+    }
+}
+
+function escapeHTML(str) {
+    if (typeof str !== 'string') return '';
+    return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+</script>
+</body>
+</html>
