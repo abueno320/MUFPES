@@ -2213,10 +2213,9 @@ Total Runtime: 12485.200 ms | Coste: 894500.00`,
         const isCorrect = selectedOption.isCorrect;
         const pointsEarned = isCorrect ? 100 : 0;
 
-        // 2. Visual highlight on buttons
-        allButtons.forEach(btn => {
-          const optText = btn.textContent;
-          if (optText.includes(selectedOption.text.substring(0, 20))) {
+        // 2. Visual highlight on the selected button only
+        allButtons.forEach((btn, idx) => {
+          if (btn === clickedBtn) {
             btn.classList.add(isCorrect ? 'correct' : 'incorrect');
           }
         });
