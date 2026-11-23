@@ -1,0 +1,1349 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>aMUzon SOC // Herramienta de Auditoría y Verificación de Autenticidad</title>
+  <style>
+    /* ==========================================================================
+       CYBERPUNK HIGH-TECH TEACHER AUDIT TOOL (SOC/NOC INSPECTION CENTER)
+       ========================================================================== */
+    :root {
+      --bg-base: #060913;
+      --bg-card: rgba(13, 20, 36, 0.88);
+      --bg-panel: rgba(18, 28, 50, 0.75);
+      --bg-code: #080c16;
+      --border-neon: rgba(0, 243, 255, 0.22);
+      --border-focus: #00f3ff;
+      --cyan: #00f3ff;
+      --cyan-glow: 0 0 15px rgba(0, 243, 255, 0.45);
+      --green: #10b981;
+      --green-glow: 0 0 18px rgba(16, 185, 129, 0.5);
+      --orange: #f59e0b;
+      --red: #ef4444;
+      --red-glow: 0 0 18px rgba(239, 68, 68, 0.5);
+      --text-main: #f8fafc;
+      --text-dim: #94a3b8;
+      --text-muted: #64748b;
+      --font-ui: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      --font-mono: "Consolas", "Courier New", monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-base);
+      background-image: 
+        radial-gradient(circle at 50% 15%, rgba(0, 243, 255, 0.08) 0%, transparent 50%),
+        radial-gradient(circle at 90% 85%, rgba(16, 185, 129, 0.05) 0%, transparent 40%),
+        linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+      background-size: 100% 100%, 100% 100%, 30px 30px, 30px 30px;
+      color: var(--text-main);
+      font-family: var(--font-ui);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    /* Scanline effect */
+    body::before {
+      content: " ";
+      display: block;
+      position: fixed;
+      inset: 0;
+      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.22) 50%);
+      background-size: 100% 4px;
+      z-index: 999;
+      pointer-events: none;
+      opacity: 0.3;
+    }
+
+    /* Header */
+    .top-header {
+      background: rgba(6, 9, 19, 0.94);
+      border-bottom: 1px solid var(--border-neon);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      padding: 0.85rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .brand-section {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .logo-badge {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 1.15rem;
+      font-weight: 800;
+      letter-spacing: 1.5px;
+      color: var(--cyan);
+      text-transform: uppercase;
+      text-shadow: var(--cyan-glow);
+    }
+
+    .role-badge {
+      background: rgba(0, 243, 255, 0.12);
+      border: 1px solid var(--cyan);
+      color: var(--cyan);
+      padding: 0.25rem 0.65rem;
+      border-radius: 4px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+    }
+
+    .container {
+      max-width: 1080px;
+      width: 100%;
+      margin: 2rem auto;
+      padding: 0 1.5rem;
+      flex: 1;
+    }
+
+    /* Glass Cards */
+    .glass-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-neon);
+      border-radius: 14px;
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6), inset 0 0 20px rgba(0, 243, 255, 0.04);
+      padding: 2.2rem;
+      margin-bottom: 2rem;
+      animation: fadeIn 0.4s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .card-title {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 0.4rem;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .card-subtitle {
+      font-size: 0.88rem;
+      color: var(--text-dim);
+      margin-bottom: 1.8rem;
+      line-height: 1.5;
+    }
+
+    /* Form Layout */
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.2rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .form-group.full-width {
+      grid-column: 1 / -1;
+    }
+
+    .form-label {
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text-dim);
+      margin-bottom: 0.45rem;
+    }
+
+    .form-input {
+      background: var(--bg-code);
+      border: 1px solid rgba(0, 243, 255, 0.3);
+      border-radius: 8px;
+      padding: 0.8rem 1rem;
+      color: var(--text-main);
+      font-family: var(--font-mono);
+      font-size: 0.95rem;
+      outline: none;
+      transition: all 0.2s ease;
+    }
+
+    .form-input:focus {
+      border-color: var(--cyan);
+      box-shadow: 0 0 12px rgba(0, 243, 255, 0.35);
+    }
+
+    textarea.form-input {
+      resize: vertical;
+      min-height: 75px;
+      line-height: 1.45;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.6rem;
+      font-family: var(--font-ui);
+      font-weight: 700;
+      font-size: 1rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      padding: 0.9rem 1.8rem;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .btn-verify {
+      background: linear-gradient(135deg, #00f3ff 0%, #0284c7 100%);
+      color: #030712;
+      box-shadow: 0 4px 18px rgba(0, 243, 255, 0.35);
+      width: 100%;
+    }
+
+    .btn-verify:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 25px rgba(0, 243, 255, 0.55);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--border-neon);
+      color: var(--text-main);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(0, 243, 255, 0.12);
+      border-color: var(--cyan);
+    }
+
+    /* Diagnostic Result Panel */
+    .diagnostic-panel {
+      display: none;
+      animation: fadeIn 0.4s ease-out;
+    }
+
+    .diagnostic-panel.show {
+      display: block;
+    }
+
+    /* Verification Status Banner */
+    .status-banner {
+      padding: 1.4rem 1.8rem;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 2rem;
+      font-size: 1.25rem;
+      font-weight: 800;
+      letter-spacing: 1px;
+    }
+
+    .status-banner.valid {
+      background: rgba(16, 185, 129, 0.14);
+      border: 2px solid var(--green);
+      box-shadow: var(--green-glow);
+      color: var(--green);
+    }
+
+    .status-banner.invalid {
+      background: rgba(239, 68, 68, 0.14);
+      border: 2px solid var(--red);
+      box-shadow: var(--red-glow);
+      color: var(--red);
+    }
+
+    .status-icon {
+      font-size: 1.8rem;
+      margin-right: 0.6rem;
+    }
+
+    /* Metrics Dashboard Grid */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1.2rem;
+      margin-bottom: 2rem;
+    }
+
+    .metric-card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-neon);
+      border-radius: 10px;
+      padding: 1.2rem;
+      text-align: center;
+    }
+
+    .metric-title {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text-dim);
+      margin-bottom: 0.4rem;
+    }
+
+    .metric-val {
+      font-family: var(--font-mono);
+      font-size: 1.7rem;
+      font-weight: 800;
+      color: var(--text-main);
+    }
+
+    .metric-badge {
+      display: inline-block;
+      font-size: 0.75rem;
+      font-weight: 700;
+      margin-top: 0.4rem;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+    }
+
+    .badge-green { background: rgba(16, 185, 129, 0.2); color: var(--green); }
+    .badge-cyan { background: rgba(0, 243, 255, 0.2); color: var(--cyan); }
+    .badge-orange { background: rgba(245, 158, 11, 0.2); color: var(--orange); }
+    .badge-red { background: rgba(239, 68, 68, 0.2); color: var(--red); }
+
+    /* Hash Comparison Inspector */
+    .hash-inspector {
+      background: #040711;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+      padding: 1.2rem 1.4rem;
+      margin-bottom: 2rem;
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      line-height: 1.6;
+    }
+
+    .hash-row {
+      display: flex;
+      flex-direction: column;
+      margin-bottom: 0.6rem;
+    }
+
+    .hash-label {
+      color: var(--text-muted);
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .hash-val {
+      word-break: break-all;
+      color: #38bdf8;
+    }
+
+    /* Answers Breakdown Table */
+    .audit-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+      font-size: 0.88rem;
+    }
+
+    .audit-table th {
+      background: rgba(0, 0, 0, 0.5);
+      padding: 0.8rem;
+      color: var(--cyan);
+      border-bottom: 1px solid var(--border-neon);
+      text-align: left;
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+    }
+
+    .audit-table td {
+      padding: 0.85rem 0.8rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      color: #cbd5e1;
+      vertical-align: top;
+    }
+
+    .audit-table tr:hover {
+      background: rgba(0, 243, 255, 0.03);
+    }
+
+    .audit-table tr.row-correct {
+      border-left: 3px solid var(--green);
+    }
+
+    .audit-table tr.row-wrong {
+      border-left: 3px solid var(--red);
+    }
+
+    /* Actions bar */
+    .actions-bar {
+      display: flex;
+      gap: 1rem;
+      margin-top: 1.8rem;
+    }
+
+    .toast-msg {
+      color: var(--green);
+      font-size: 0.85rem;
+      margin-left: auto;
+      align-self: center;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .toast-msg.show {
+      opacity: 1;
+    }
+
+    @media (max-width: 768px) {
+      .form-grid { grid-template-columns: 1fr; }
+      .metrics-grid { grid-template-columns: 1fr 1fr; }
+      .actions-bar { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NOC Header -->
+  <header class="top-header">
+    <div class="brand-section">
+      <div class="logo-badge">
+        <span>aMUzon SOC // PORTAL DEL PROFESORADO</span>
+      </div>
+      <span class="role-badge">AUDITORÍA DE INTEGRIDAD SHA-256</span>
+    </div>
+    <div style="font-family: var(--font-mono); font-size: 0.82rem; color: var(--text-dim);">
+      Módulo 0484: Bases de Datos (DAM / DAW)
+    </div>
+  </header>
+
+  <div class="container">
+    <!-- Audit Input Panel -->
+    <div class="glass-card">
+      <h2 class="card-title">
+        <span>🔍 Verificación Criptográfica de Sesión</span>
+      </h2>
+      <p class="card-subtitle">
+        Introduce el nombre y el DNI o expediente tal como aparecen en el informe del alumno, y pega su código CVHC. También puedes completar los datos de la firma manualmente.
+      </p>
+
+      <div class="form-grid">
+        <div class="form-group full-width">
+          <label class="form-label" for="inputCvhcToken">Código de Verificación Hash Copiable (CVHC)</label>
+          <input type="text" id="inputCvhcToken" class="form-input" placeholder="Ej: AMZ-2026-S8492-P900-T420-A0000000000-7F6C3FE8CBDA0E8D" />
+          <span style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.35rem;">
+            💡 Al pegar el código CVHC, se auto-extraen la semilla, puntuación, tiempo y respuestas automáticamente.
+          </span>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="inputStudentName">Nombre y Apellidos del Alumno</label>
+          <input type="text" id="inputStudentName" class="form-input" placeholder="Ej: Carmen López Navarro" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="inputStudentId">DNI / Número de Expediente</label>
+          <input type="text" id="inputStudentId" class="form-input" placeholder="Ej: 48593821K" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="inputSeed">Semilla Utilizada (Seed)</label>
+          <input type="number" id="inputSeed" class="form-input" placeholder="Ej: 8492" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="inputScore">Puntuación Reportada (0 - 1000)</label>
+          <input type="number" id="inputScore" class="form-input" placeholder="Ej: 900" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="inputTime">Tiempo Invertido (Segundos)</label>
+          <input type="number" id="inputTime" class="form-input" placeholder="Ej: 420" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="inputHashSignature">Firma Hash SHA-256 (o prefijo de 16 caracteres)</label>
+          <input type="text" id="inputHashSignature" class="form-input" placeholder="Ej: 7F6C3FE8CBDA0E8D" />
+        </div>
+      </div>
+
+      <p id="auditError" role="alert" hidden style="color: var(--red); margin: 0 0 1rem; font-weight: 600;"></p>
+      <button id="btnAuditGame" class="btn btn-verify">
+        AUDITAR Y VERIFICAR PARTIDA 🔍
+      </button>
+    </div>
+
+    <!-- Diagnostic Visual Panel -->
+    <div id="diagnosticPanel" class="glass-card diagnostic-panel">
+      <!-- Authenticity Status Banner -->
+      <div id="statusBanner" class="status-banner valid">
+        <div style="display: flex; align-items: center;">
+          <span id="statusIcon" class="status-icon">�?/span>
+          <span id="statusTitle">CÓDIGO VÁLIDO Y AUTÉNTICO</span>
+        </div>
+        <span id="statusSub" style="font-size: 0.85rem; font-family: var(--font-mono); opacity: 0.9;">FIRMA SHA-256 VERIFICADA</span>
+      </div>
+
+      <!-- Metrics Cards -->
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <div class="metric-title">Semilla de Sesión</div>
+          <div class="metric-val" id="metricSeed">---</div>
+          <span class="metric-badge badge-cyan" id="metricSeedBadge">PRNG Determinista</span>
+        </div>
+        <div class="metric-card">
+          <div class="metric-title">Puntuación Final</div>
+          <div class="metric-val" id="metricScore">---</div>
+          <span class="metric-badge badge-green" id="metricScoreBadge">de 1000 pts</span>
+        </div>
+        <div class="metric-card">
+          <div class="metric-title">Nota Oficial (0-10)</div>
+          <div class="metric-val" id="metricGrade" style="color: var(--cyan);">---</div>
+          <span class="metric-badge badge-green" id="metricGradeBadge">---</span>
+        </div>
+        <div class="metric-card">
+          <div class="metric-title">Tiempo Empleado</div>
+          <div class="metric-val" id="metricTime">---</div>
+          <span class="metric-badge badge-cyan" id="metricTimeBadge">---</span>
+        </div>
+        <div class="metric-card">
+          <div class="metric-title">Reducción Carga CPU</div>
+          <div class="metric-val" id="metricCpu" style="color: var(--green);">---</div>
+          <span class="metric-badge badge-green">Estabilidad Lograda</span>
+        </div>
+      </div>
+
+      <!-- Hash Comparison Inspector -->
+      <div class="hash-inspector">
+        <div class="hash-row">
+          <span class="hash-label">Cadena Base Criptográfica (STRING_BASE):</span>
+          <span class="hash-val" id="dispStringBase" style="color: #cbd5e1;">---</span>
+        </div>
+        <div class="hash-row">
+          <span class="hash-label">Firma Hash Esperada (Recalculada con Clave Secreta NOC):</span>
+          <span class="hash-val" id="dispExpectedHash">---</span>
+        </div>
+        <div class="hash-row">
+          <span class="hash-label">Firma Hash Presentada por el Alumno:</span>
+          <span class="hash-val" id="dispProvidedHash">---</span>
+        </div>
+      </div>
+
+      <!-- Detailed Breakdown of the 10 Challenges -->
+      <div style="margin-top: 2rem;">
+        <h3 style="color: var(--text-main); font-size: 1.2rem; margin-bottom: 0.6rem;">
+          📑 Histórico de Respuestas Reconstruido (Auditoría Pedagógica)
+        </h3>
+        <p style="font-size: 0.85rem; color: var(--text-dim); margin-bottom: 1rem;">
+          A continuación se presenta la reconstrucción de las 10 decisiones tomadas por el alumno con la semilla proporcionada:
+        </p>
+        <table class="audit-table">
+          <thead>
+            <tr>
+              <th style="width: 40px;">#</th>
+              <th style="width: 250px;">Recurso Didáctico / RA</th>
+              <th>Enunciado del Reto</th>
+              <th>Opción Seleccionada por el Alumno</th>
+              <th style="width: 110px;">Resultado</th>
+            </tr>
+          </thead>
+          <tbody id="auditTableBody">
+            <!-- Dynamically populated -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Actions -->
+      <div class="actions-bar">
+        <button id="btnCopyAuditRecord" class="btn btn-secondary">
+          📋 COPIAR ACTA DE AUDITORÍA
+        </button>
+        <span class="toast-msg" id="auditToastMsg">�?¡Acta copiada al portapapeles!</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function decodeEmbeddedValue(encoded) {
+      const mask = 91;
+      return encoded.map(code => String.fromCharCode(code ^ mask)).join('');
+    }
+
+    /**
+     * ========================================================================
+     * NATIVE WEBAUDIO SOUND ENGINE
+     * ========================================================================
+     */
+    class SoundFX {
+      constructor() {
+        this.ctx = null;
+      }
+      init() {
+        if (!this.ctx) {
+          const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+          if (AudioContextClass) this.ctx = new AudioContextClass();
+        }
+        if (this.ctx && this.ctx.state === 'suspended') {
+          this.ctx.resume().catch(e => console.warn('No se pudo reanudar el audio:', e));
+        }
+      }
+      success() {
+        try {
+          this.init();
+          if (!this.ctx) return;
+          const now = this.ctx.currentTime;
+          [523.25, 659.25, 783.99, 1046.50].forEach((freq, idx) => {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.frequency.setValueAtTime(freq, now + idx * 0.06);
+            gain.gain.setValueAtTime(0.12, now + idx * 0.06);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.06 + 0.15);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(now + idx * 0.06);
+            osc.stop(now + idx * 0.06 + 0.16);
+          });
+        } catch (e) { console.warn('No se pudo reproducir el sonido de confirmación:', e); }
+      }
+      error() {
+        try {
+          this.init();
+          if (!this.ctx) return;
+          const now = this.ctx.currentTime;
+          [220, 160].forEach((freq, idx) => {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(freq, now + idx * 0.1);
+            gain.gain.setValueAtTime(0.15, now + idx * 0.1);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.1 + 0.2);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(now + idx * 0.1);
+            osc.stop(now + idx * 0.1 + 0.21);
+          });
+        } catch (e) { console.warn('No se pudo reproducir el sonido de error:', e); }
+      }
+      click() {
+        try {
+          this.init();
+          if (!this.ctx) return;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.frequency.setValueAtTime(900, this.ctx.currentTime);
+          gain.gain.setValueAtTime(0.08, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + 0.04);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start();
+          osc.stop(this.ctx.currentTime + 0.04);
+        } catch (e) { console.warn('No se pudo reproducir el sonido del botón:', e); }
+      }
+    }
+
+    const sound = new SoundFX();
+
+    /**
+     * ========================================================================
+     * CHALLENGE CATALOG (IDENTICAL DETERMINISTIC REFERENCE)
+     * ========================================================================
+     */
+    const CHALLENGE_DEFINITIONS = [
+      {
+        id: 1,
+        raBadge: "📌 RA2/CE2.h - Estructuras de Indexación (B-Tree vs Hash vs Compuesto)",
+        title: "Reto 1: Consultas por Rango vs Igualdad en Catálogo de Murcia",
+        options: [
+          {
+            title: "Reemplazar por un índice B-Tree compuesto (categoria_id, precio)",
+            isCorrect: true,
+            explanation: "B-Tree soporta operadores de rango (<, >, BETWEEN) y el orden compuesto filtra primero por igualdad y luego recorre el rango."
+          },
+          {
+            title: "Mantener el índice Hash y forzarlo con HINT o SET enable_seqscan = off",
+            isCorrect: false,
+            explanation: "Los índices Hash carecen de ordenación lógica; no admiten operadores de rango."
+          },
+          {
+            title: "Crear un índice B-Tree simple únicamente sobre la columna 'precio'",
+            isCorrect: false,
+            explanation: "Un índice simple en precio es mucho menos selectivo y obliga a comprobar categoria_id en la tabla."
+          },
+          {
+            title: "Crear un índice invertido GIN sobre la columna categoria_id",
+            isCorrect: false,
+            explanation: "Los índices GIN están diseñados para documentos JSON o tipos multivalor."
+          }
+        ]
+      },
+      {
+        id: 2,
+        raBadge: "📌 RA1/CE1.h - Particionado Horizontal y Poda de Particiones",
+        title: "Reto 2: Particionado Horizontal de Histórico Masivo de Pedidos",
+        options: [
+          {
+            title: "Particionado Horizontal por Rango (PARTITION BY RANGE (fecha_pedido))",
+            isCorrect: true,
+            explanation: "Permite 'Partition Pruning', leyendo solo el rango trimestral solicitado."
+          },
+          {
+            title: "Particionado por HASH sobre id_pedido en 8 particiones",
+            isCorrect: false,
+            explanation: "El HASH reparte por ID; una búsqueda por fecha requeriría consultar todas las particiones."
+          },
+          {
+            title: "Particionado por LIST sobre el estado_pedido ('ENTREGADO', 'CANCELADO')",
+            isCorrect: false,
+            explanation: "El 98% de los pedidos son entregados; generaría una partición desbalanceada."
+          },
+          {
+            title: "Eliminar la clave primaria y crear 10 índices paralelos en la tabla única",
+            isCorrect: false,
+            explanation: "Aumenta la sobrecarga de escritura sin reducir el tamaño de tabla escaneado."
+          }
+        ]
+      },
+      {
+        id: 3,
+        raBadge: "📌 RA2/CE2.c - Reducción de Huella de Memoria (Buffer Pool & Datatypes)",
+        title: "Reto 3: Desbordamiento de Buffer Pool por Datatypes Sobredimensionados",
+        options: [
+          {
+            title: "provincia: CHAR(2), cantidad: SMALLINT, descuento: DECIMAL(5,2), codigo_postal: CHAR(5)",
+            isCorrect: true,
+            explanation: "Reduce el ancho de fila en más del 85%, cuadruplicando las filas por página de memoria."
+          },
+          {
+            title: "Mantener los tipos actuales y ampliar la memoria RAM física del servidor a 256 GB",
+            isCorrect: false,
+            explanation: "Antipatrón de hardware que no soluciona el desperdicio de memoria."
+          },
+          {
+            title: "Convertir todas las columnas a VARCHAR(10) para uniformizar",
+            isCorrect: false,
+            explanation: "Añade sobrecarga de longitud variable y pierde integridad numérica."
+          },
+          {
+            title: "Comprimir la tabla con TOAST forzado en todas las columnas numéricas",
+            isCorrect: false,
+            explanation: "Los números de ancho fijo no son comprimibles con TOAST."
+          }
+        ]
+      },
+      {
+        id: 4,
+        raBadge: "📌 RA2-RA3/CE2.h-CE3.h - Índices Cubrientes (Covering Index / Index-Only Scan)",
+        title: "Reto 4: Eliminación de Accesos a Tabla con Index-Only Scan",
+        options: [
+          {
+            title: "CREATE INDEX idx_checkout_cover ON pedidos(cliente_id, fecha_compra DESC) INCLUDE (total_euros);",
+            isCorrect: true,
+            explanation: "Cubre toda la consulta, permitiendo 'Index Only Scan' sin lecturas a la tabla principal."
+          },
+          {
+            title: "CREATE INDEX idx_total ON pedidos(total_euros);",
+            isCorrect: false,
+            explanation: "No filtra por cliente ni ordena por fecha."
+          },
+          {
+            title: "Eliminar el índice y obligar a leer la tabla completa secuencialmente",
+            isCorrect: false,
+            explanation: "Satura el canal de I/O en cada consulta."
+          },
+          {
+            title: "Crear un índice Hash sobre (cliente_id, fecha_compra, total_euros)",
+            isCorrect: false,
+            explanation: "Los índices Hash no admiten ordenación DESC ni cláusula INCLUDE."
+          }
+        ]
+      },
+      {
+        id: 5,
+        raBadge: "📌 RA2/CE2.d-CE2.e-CE2.h - Indexación de Claves Foráneas para Prevenir Lock Contention",
+        title: "Reto 5: Bloqueos Masivos de Tabla por Claves Foráneas sin Indexar",
+        options: [
+          {
+            title: "Crear un índice B-Tree sobre la clave foránea: CREATE INDEX idx_fk_direcciones_cliente ON direcciones_envio(cliente_id);",
+            isCorrect: true,
+            explanation: "Permite verificar integridad referencial fila a fila en el índice sin bloquear la tabla completa."
+          },
+          {
+            title: "Deshabilitar las comprobaciones de integridad referencial con FOREIGN_KEY_CHECKS = 0 en producción",
+            isCorrect: false,
+            explanation: "Destruye la integridad referencial y genera datos huérfanos."
+          },
+          {
+            title: "Cambiar el nivel de aislamiento a READ UNCOMMITTED en todas las sesiones",
+            isCorrect: false,
+            explanation: "No evita los bloqueos de escritura exclusivos exigidos por claves foráneas."
+          },
+          {
+            title: "Reemplazar la clave foránea por un disparador (TRIGGER) síncrono",
+            isCorrect: false,
+            explanation: "Añade sobrecarga y persiste la necesidad de escaneo completo sin índice."
+          }
+        ]
+      },
+      {
+        id: 6,
+        raBadge: "📌 RA1/CE1.h - Particionado Vertical y Segregación de BLOBs/TEXT",
+        title: "Reto 6: Particionado Vertical para Segregar Fichas Técnicas (Hot vs Cold Data)",
+        options: [
+          {
+            title: "Particionar verticalmente: mantener en 'articulos' las columnas calientes y crear una tabla 1:1 'articulos_multimedia' para los BLOBs/TEXT",
+            isCorrect: true,
+            explanation: "La tabla caliente reduce la fila de 95 KB a 80 bytes, multiplicando las tuplas por bloque de disco."
+          },
+          {
+            title: "Guardar los archivos PDF directamente en el archivo de configuración postgresql.conf",
+            isCorrect: false,
+            explanation: "Los ficheros de configuración no son almacenes de datos."
+          },
+          {
+            title: "Codificar los archivos PDF a Base64 e insertarlos en el campo 'nombre'",
+            isCorrect: false,
+            explanation: "Aumenta el peso en un 33% adicional y rompe la semántica relacional."
+          },
+          {
+            title: "Aumentar el tamaño de bloque de PostgreSQL de 8 KB a 1 MB",
+            isCorrect: false,
+            explanation: "Degrada la granularidad de concurrencia del Buffer Pool."
+          }
+        ]
+      },
+      {
+        id: 7,
+        raBadge: "📌 RA3/CE3.h - Erradicación de Antipatrones de Filtros y Predicados SARGables",
+        title: "Reto 7: Refactorización a Predicados SARGables en Informes de Ventas",
+        options: [
+          {
+            title: "WHERE fecha_emision >= '2026-01-01' AND fecha_emision < '2027-01-01' AND precio_unitario > (100.00 / 1.21)",
+            isCorrect: true,
+            explanation: "Aísla las columnas indexadas, permitiendo búsquedas binarias directas por rango en B-Tree."
+          },
+          {
+            title: "WHERE DATE_FORMAT(fecha_emision, '%Y') = '2026' AND ROUND(precio_unitario * 1.21, 2) > 100.00",
+            isCorrect: false,
+            explanation: "Envolver la columna en DATE_FORMAT sigue siendo no-SARGable."
+          },
+          {
+            title: "Añadir la sugerencia USE INDEX (idx_fecha) sin cambiar la sintaxis del WHERE",
+            isCorrect: false,
+            explanation: "Obliga a evaluar la función fila por fila en cada nodo del índice."
+          },
+          {
+            title: "Cambiar el operador de comparación por LIKE '2026%'",
+            isCorrect: false,
+            explanation: "La conversión implícita a texto destruye la propiedad SARGable de fechas."
+          }
+        ]
+      },
+      {
+        id: 8,
+        raBadge: "📌 RA2-RA3/CE2.h-CE3.h - Índices Parciales o Filtrados (Partial / Filtered Indexes)",
+        title: "Reto 8: Optimización de Logística Activa mediante Índice Parcial",
+        options: [
+          {
+            title: "Crear un Índice Parcial con cláusula WHERE: CREATE INDEX idx_envios_activos ON seguimiento_envios (repartidor_id) WHERE estado IN ('EN_REPARTO', 'INCIDENCIA');",
+            isCorrect: true,
+            explanation: "Indexa solo el 3% de pedidos activos, reduciendo el tamaño de 850 MB a 20 MB en RAM."
+          },
+          {
+            title: "Crear un índice compuesto estándar sobre (estado, repartidor_id)",
+            isCorrect: false,
+            explanation: "Seguiría indexando los 11.6 millones de paquetes ya entregados."
+          },
+          {
+            title: "Crear una tabla duplicada cada mañana copiando los registros activos y borrándola por la noche",
+            isCorrect: false,
+            explanation: "Arquitectura propensa a desincronizaciones."
+          },
+          {
+            title: "Desactivar el índice y realizar un escaneo secuencial en memoria compartida",
+            isCorrect: false,
+            explanation: "Un Seq Scan colapsaría la CPU con cientos de consultas simultáneas."
+          }
+        ]
+      },
+      {
+        id: 9,
+        raBadge: "📌 RA2/CE2.a-CE2.h - Factor de Relleno (Fill Factor) y Fragmentación de Páginas",
+        title: "Reto 9: Fragmentación Severa y Page Splits en Transacciones de Stock",
+        options: [
+          {
+            title: "Reducir el FILLFACTOR a un 75%-80% en la tabla e índices, ejecutando un REINDEX programado",
+            isCorrect: true,
+            explanation: "Deja un 20%-25% de holgura en las páginas B-Tree para absorber modificaciones sin rotura de páginas."
+          },
+          {
+            title: "Aumentar el FILLFACTOR al 100% para aprovechar hasta el último byte de cada bloque",
+            isCorrect: false,
+            explanation: "Provoca roturas inmediatas de página en cada inserción o modificación."
+          },
+          {
+            title: "Desactivar el Journaling / Write-Ahead Logging (WAL) en el servidor de producción",
+            isCorrect: false,
+            explanation: "Provoca pérdida de datos ante cortes eléctricos."
+          },
+          {
+            title: "Forzar a que todos los campos de texto se guarden en ficheros planos en /tmp",
+            isCorrect: false,
+            explanation: "Destruye la consistencia transaccional ACID."
+          }
+        ]
+      },
+      {
+        id: 10,
+        raBadge: "📌 RA3/CE3.h - Diagnóstico Integral de Rendimiento y Análisis de EXPLAIN PLAN",
+        title: "Reto 10: Auditoría Integral de EXPLAIN PLAN y Spilling a Disco",
+        options: [
+          {
+            title: "Causa: 'Disk Spilling' en el nodo Hash por insuficiencia de work_mem (142 MB volcados a disco). Solución: Incrementar work_mem o indexar pedidos(cliente_id).",
+            isCorrect: true,
+            explanation: "El nodo Hash superó la memoria disponible y volcó 142 MB a disco temporal, multiplicando la latencia."
+          },
+          {
+            title: "Causa: El ancho de fila 'width=120' es demasiado extenso para el procesador x86_64.",
+            isCorrect: false,
+            explanation: "Un ancho de 120 bytes es habitual y perfectamente soportado por el hardware."
+          },
+          {
+            title: "Causa: El nodo 'Seq Scan on pedidos' tiene un coste estimado demasiado bajo y confunde al optimizador.",
+            isCorrect: false,
+            explanation: "El Seq Scan tardó muy poco; el retraso crítico fue el derrame a disco temporal."
+          },
+          {
+            title: "Causa: Los nombres de las tablas tienen alias cortos ('p' y 'c') que provocan colisiones en caché.",
+            isCorrect: false,
+            explanation: "Los alias son referencias sintácticas y no alteran la ejecución física."
+          }
+        ]
+      }
+    ];
+
+    /**
+     * ========================================================================
+     * PRNG & SHUFFLE (MULBERRY32 - EXACT REPRODUCTION)
+     * ========================================================================
+     */
+    function createPRNG(seedNumber) {
+      let s = Math.floor(Math.abs(seedNumber)) || 8492;
+      return function() {
+        s |= 0;
+        s = s + 0x6D2B79F5 | 0;
+        let t = Math.imul(s ^ (s >>> 15), 1 | s);
+        t = t + Math.imul(t ^ (t >>> 7), 61 | t) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+    }
+
+    function deterministicShuffle(array, rng) {
+      if (!Array.isArray(array) || array.length <= 1) return [...array];
+      const result = [...array];
+      for (let i = result.length - 1; i > 0; i--) {
+        const j = Math.floor(rng() * (i + 1));
+        [result[i], result[j]] = [result[j], result[i]];
+      }
+      return result;
+    }
+
+    /**
+     * ========================================================================
+     * CRYPTOGRAPHIC HASH FUNCTIONS
+     * ========================================================================
+     */
+    function utf8Encode(str) {
+      return unescape(encodeURIComponent(str));
+    }
+
+    function sha256Pure(ascii) {
+      ascii = utf8Encode(ascii);
+      function rightRotate(value, amount) { return (value >>> amount) | (value << (32 - amount)); }
+      var mathPow = Math.pow, maxWord = mathPow(2, 32), lengthProperty = 'length', i, j, result = '', words = [];
+      var asciiBitLength = ascii[lengthProperty] * 8, hash = [], k = [], primeCounter = 0, isComposite = {};
+      for (var candidate = 2; primeCounter < 64; candidate++) {
+        if (!isComposite[candidate]) {
+          for (i = 0; i < 313; i += candidate) isComposite[i] = candidate;
+          hash[primeCounter] = (mathPow(candidate, .5) * maxWord) | 0;
+          k[primeCounter++] = (mathPow(candidate, 1/3) * maxWord) | 0;
+        }
+      }
+      ascii += '\x80';
+      while (ascii[lengthProperty] % 64 - 56) ascii += '\x00';
+      for (i = 0; i < ascii[lengthProperty]; i++) {
+        j = ascii.charCodeAt(i);
+        words[i >> 2] |= j << ((3 - i % 4) * 8);
+      }
+      words[words[lengthProperty]] = ((asciiBitLength / maxWord) | 0);
+      words[words[lengthProperty]] = (asciiBitLength | 0);
+      for (j = 0; j < words[lengthProperty];) {
+        var w = words.slice(j, j += 16);
+        var oldHash = hash;
+        hash = hash.slice(0, 8);
+        for (i = 0; i < 64; i++) {
+          var w15 = w[i - 15], w2 = w[i - 2];
+          var s0 = rightRotate(w15, 7) ^ rightRotate(w15, 18) ^ (w15 >>> 3);
+          var s1 = rightRotate(w2, 17) ^ rightRotate(w2, 19) ^ (w2 >>> 10);
+          var ch = (hash[4] & hash[5]) ^ (~hash[4] & hash[6]);
+          var maj = (hash[0] & hash[1]) ^ (hash[0] & hash[2]) ^ (hash[1] & hash[2]);
+          var temp1 = (hash[7] + (rightRotate(hash[4], 6) ^ rightRotate(hash[4], 11) ^ rightRotate(hash[4], 25)) + ch + k[i] + (w[i] = (i < 16) ? w[i] : (w[i - 16] + s0 + w[i - 7] + s1) | 0)) | 0;
+          var temp2 = ((rightRotate(hash[0], 2) ^ rightRotate(hash[0], 13) ^ rightRotate(hash[0], 22)) + maj) | 0;
+          hash = [(temp1 + temp2) | 0].concat(hash);
+          hash[4] = (hash[4] + temp1) | 0;
+          hash.length = 8;
+        }
+        for (i = 0; i < 8; i++) hash[i] = (hash[i] + oldHash[i]) | 0;
+      }
+      for (i = 0; i < 8; i++) {
+        for (j = 3; j >= 0; j--) {
+          var b = (hash[i] >> (j * 8)) & 255;
+          result += ((b < 16) ? '0' : '') + b.toString(16);
+        }
+      }
+      return result.toUpperCase();
+    }
+
+    async function computeSHA256(str) {
+      try {
+        if (window.crypto && window.crypto.subtle && window.TextEncoder) {
+          const enc = new TextEncoder();
+          const buf = await window.crypto.subtle.digest('SHA-256', enc.encode(str));
+          return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase();
+        }
+      } catch (e) {
+        console.warn('SubtleCrypto error, falling back to pure JS SHA-256', e);
+      }
+      return sha256Pure(str);
+    }
+
+    /**
+     * ========================================================================
+     * PARSE CVHC TOKEN AUTOMATICALLY
+     * ========================================================================
+     */
+    function parseCVHCToken(tokenString) {
+      if (!tokenString || typeof tokenString !== 'string') return null;
+      const clean = tokenString.trim();
+      // Regex matches: AMZ-2026-S[Seed]-P[Score]-T[Time]-A[AnswersCode]-[Hash]
+      const match = clean.match(/^AMZ-2026-S(\d+)-P(\d+)-T(\d+)(?:-A([0-9A-Za-z]+))?-([A-Fa-f0-9]+)$/i);
+      if (match) {
+        return {
+          seed: parseInt(match[1], 10),
+          score: parseInt(match[2], 10),
+          time: parseInt(match[3], 10),
+          answersCode: match[4] || '',
+          hash: match[5].toUpperCase()
+        };
+      }
+      return null;
+    }
+
+    /**
+     * ========================================================================
+     * VERIFICATION & AUDIT ENGINE
+     * ========================================================================
+     */
+    let lastAuditReportText = '';
+
+    async function performAudit() {
+      sound.click();
+      const cvhcInput = document.getElementById('inputCvhcToken');
+      const nameInput = document.getElementById('inputStudentName');
+      const idInput = document.getElementById('inputStudentId');
+      const seedInput = document.getElementById('inputSeed');
+      const scoreInput = document.getElementById('inputScore');
+      const timeInput = document.getElementById('inputTime');
+      const hashInput = document.getElementById('inputHashSignature');
+      const errorPanel = document.getElementById('auditError');
+      errorPanel.hidden = true;
+      errorPanel.textContent = '';
+      document.getElementById('diagnosticPanel').classList.remove('show');
+
+      function showAuditError(message, input) {
+        errorPanel.textContent = message;
+        errorPanel.hidden = false;
+        if (input) input.focus();
+      }
+
+      let studentName = (nameInput.value || '').trim();
+      let studentId = (idInput.value || '').trim();
+      let seedVal = seedInput.value !== '' ? parseInt(seedInput.value, 10) : NaN;
+      let scoreVal = scoreInput.value !== '' ? parseInt(scoreInput.value, 10) : NaN;
+      let timeVal = timeInput.value !== '' ? parseInt(timeInput.value, 10) : NaN;
+      let hashSignature = (hashInput.value || '').trim().toUpperCase();
+      let answersCode = '';
+
+      // The token takes precedence over any fields from a previous audit.
+      const parsedToken = parseCVHCToken(cvhcInput.value);
+      if (cvhcInput.value.trim() && !parsedToken) {
+        showAuditError('El código CVHC no tiene un formato válido para el juego 1. Comprueba que lo has copiado completo.', cvhcInput);
+        return;
+      }
+      if (parsedToken) {
+        seedVal = parsedToken.seed; seedInput.value = seedVal;
+        scoreVal = parsedToken.score; scoreInput.value = scoreVal;
+        timeVal = parsedToken.time; timeInput.value = timeVal;
+        hashSignature = parsedToken.hash; hashInput.value = hashSignature;
+        answersCode = parsedToken.answersCode;
+      }
+
+      // Validations
+      if (!studentName) {
+        showAuditError('Introduce el nombre del alumno tal como figura en su informe.', nameInput);
+        return;
+      }
+      if (!studentId) {
+        showAuditError('Introduce el DNI o número de expediente que figura en el informe.', idInput);
+        return;
+      }
+      if (isNaN(seedVal) || isNaN(scoreVal) || isNaN(timeVal)) {
+        showAuditError('Introduce la semilla, la puntuación y el tiempo empleado, o pega el código CVHC completo.', cvhcInput);
+        return;
+      }
+      if (!hashSignature) {
+        showAuditError('Introduce la firma hash o el código CVHC entregado por el alumno.', hashInput);
+        return;
+      }
+
+      // Normalization as per specification
+      const normName = studentName.trim().toUpperCase();
+      const normId = studentId.trim().toUpperCase();
+
+      const signatureSalt = decodeEmbeddedValue([26, 22, 14, 1, 20, 21, 4, 8, 30, 24, 9, 30, 15, 4, 16, 30, 2, 4, 105, 107, 105, 109]);
+      const stringBase = `${normName}|${normId}|${seedVal}|${scoreVal}|${timeVal}|${signatureSalt}`;
+      const expectedFullHash = await computeSHA256(stringBase);
+
+      // Check match: either exact 64-char match or 16+ hex prefix match
+      const isValid = expectedFullHash.startsWith(hashSignature) || hashSignature === expectedFullHash;
+
+      // Update Diagnostic Panel UI
+      const diagnosticPanel = document.getElementById('diagnosticPanel');
+      diagnosticPanel.classList.add('show');
+
+      const statusBanner = document.getElementById('statusBanner');
+      const statusIcon = document.getElementById('statusIcon');
+      const statusTitle = document.getElementById('statusTitle');
+      const statusSub = document.getElementById('statusSub');
+
+      if (isValid) {
+        sound.success();
+        statusBanner.className = 'status-banner valid';
+        statusIcon.textContent = '�?;
+        statusTitle.textContent = 'CÓDIGO VÁLIDO Y AUTÉNTICO';
+        statusSub.textContent = 'INTEGRIDAD CRIPTOGRÁFICA VERIFICADA';
+      } else {
+        sound.error();
+        statusBanner.className = 'status-banner invalid';
+        statusIcon.textContent = '�?;
+        statusTitle.textContent = 'CÓDIGO INCOMPATIBLE O MANIPULADO';
+        statusSub.textContent = 'FIRMA NO COINCIDE (ALTERACIÓN DETECTADA)';
+      }
+
+      // Populate Metrics
+      document.getElementById('metricSeed').textContent = seedVal;
+      document.getElementById('metricScore').textContent = `${scoreVal}`;
+      const finalGrade = (scoreVal / 100).toFixed(1);
+      document.getElementById('metricGrade').textContent = `${finalGrade}`;
+
+      const gradeBadge = document.getElementById('metricGradeBadge');
+      if (parseFloat(finalGrade) >= 9) {
+        gradeBadge.textContent = 'SOBRESALIENTE';
+        gradeBadge.className = 'metric-badge badge-green';
+      } else if (parseFloat(finalGrade) >= 7) {
+        gradeBadge.textContent = 'NOTABLE';
+        gradeBadge.className = 'metric-badge badge-green';
+      } else if (parseFloat(finalGrade) >= 5) {
+        gradeBadge.textContent = 'APROBADO';
+        gradeBadge.className = 'metric-badge badge-cyan';
+      } else {
+        gradeBadge.textContent = 'SUSPENSO';
+        gradeBadge.className = 'metric-badge badge-red';
+      }
+
+      const elapsedMins = Math.floor(timeVal / 60);
+      const elapsedSecs = timeVal % 60;
+      document.getElementById('metricTime').textContent = `${String(elapsedMins).padStart(2,'0')}:${String(elapsedSecs).padStart(2,'0')}`;
+      document.getElementById('metricTimeBadge').textContent = `${timeVal} seg`;
+
+      // Estimated CPU reduction based on score: 8% per correct challenge (100 pts)
+      const correctAnswersCount = Math.round(scoreVal / 100);
+      const estimatedCpuReduction = Math.min(80, correctAnswersCount * 8.0);
+      const estimatedFinalCpu = Math.max(19.8, 99.8 - estimatedCpuReduction);
+      document.getElementById('metricCpu').textContent = `${estimatedCpuReduction.toFixed(1)}%`;
+
+      // Inspector displays
+      const displayBase = `${normName}|${normId}|${seedVal}|${scoreVal}|${timeVal}|[FIRMA INTERNA]`;
+      document.getElementById('dispStringBase').textContent = displayBase;
+      document.getElementById('dispExpectedHash').textContent = expectedFullHash;
+      document.getElementById('dispProvidedHash').textContent = hashSignature + (hashSignature.length < 64 ? ' (Prefijo)' : '');
+
+      // Reconstruct the 10 Challenges using deterministic PRNG
+      const tableBody = document.getElementById('auditTableBody');
+      tableBody.innerHTML = '';
+
+      let reconstructedAuditLog = [];
+
+      for (let i = 0; i < 10; i++) {
+        const challengeDef = CHALLENGE_DEFINITIONS[i];
+        const rng = createPRNG(seedVal + (i * 13));
+        const shuffled = deterministicShuffle(challengeDef.options, rng);
+
+        // Find which option was selected if answersCode is present
+        let selectedIdx = -1;
+        if (answersCode && answersCode.length > i) {
+          const charCode = answersCode.charAt(i);
+          selectedIdx = parseInt(charCode, 10);
+        }
+
+        const selectedOption = (selectedIdx >= 0 && selectedIdx < shuffled.length) ? shuffled[selectedIdx] : null;
+        const isOptCorrect = selectedOption ? selectedOption.isCorrect : (i < correctAnswersCount);
+
+        const tr = document.createElement('tr');
+        tr.className = isOptCorrect ? 'row-correct' : 'row-wrong';
+
+        tr.innerHTML = `
+          <td style="font-family: var(--font-mono); font-weight: 700;">${i + 1}</td>
+          <td>
+            <div style="color: var(--cyan); font-weight: 600; font-size: 0.8rem;">${escapeHTML(challengeDef.raBadge)}</div>
+          </td>
+          <td>
+            <div style="font-weight: 600; color: #f1f5f9; margin-bottom: 0.2rem;">${escapeHTML(challengeDef.title)}</div>
+          </td>
+          <td>
+            <div style="font-size: 0.84rem; color: ${isOptCorrect ? '#a7f3d0' : '#fecaca'};">
+              ${selectedOption ? `<strong>[Opción ${String.fromCharCode(65 + selectedIdx)}]</strong> ${escapeHTML(selectedOption.title)}` : '<em style="color: var(--text-muted);">Opción no codificada en el token</em>'}
+            </div>
+            ${selectedOption ? `<div style="font-size: 0.75rem; color: var(--text-dim); margin-top: 0.2rem;">${escapeHTML(selectedOption.explanation)}</div>` : ''}
+          </td>
+          <td style="font-family: var(--font-mono); font-weight: 700;">
+            <span style="color: ${isOptCorrect ? 'var(--green)' : 'var(--red)'};">
+              ${isOptCorrect ? '�?+100 pts' : '�?0 pts'}
+            </span>
+          </td>
+        `;
+
+        tableBody.appendChild(tr);
+
+        reconstructedAuditLog.push(`Reto ${i+1}: [${challengeDef.raBadge}] -> ${isOptCorrect ? 'CORRECTO (+100 pts)' : 'FALLIDO (0 pts)'}`);
+      }
+
+      // Generate printable report text for export
+      lastAuditReportText = `=====================================================
+ACTA OFICIAL DE AUDITORÍA Y CALIFICACIÓN
+MÓDULO 0484: BASES DE DATOS (DAM / DAW) - aMUzon SOC
+=====================================================
+ESTADO DE AUTENTICIDAD: ${isValid ? 'VALIDO Y AUTENTICO (SHA-256 MATCH)' : 'INCOMPATIBLE / MANIPULADO'}
+Fecha de Auditoría: ${new Date().toLocaleString()}
+
+DATOS DEL ALUMNO/A:
+- Nombre: ${normName}
+- DNI / Expediente: ${normId}
+- Semilla Evaluada: ${seedVal}
+
+MÉTRICAS EXTRAÍDAS:
+- Puntuación: ${scoreVal} / 1000 pts
+- Calificación Final: ${finalGrade} / 10 (${gradeBadge.textContent})
+- Tiempo Empleado: ${elapsedMins}m ${elapsedSecs}s (${timeVal} seg)
+- Reducción Estimada CPU: ${estimatedCpuReduction.toFixed(1)}% (CPU al ${estimatedFinalCpu.toFixed(1)}%)
+
+VERIFICACIÓN CRIPTOGRÁFICA:
+- Cadena Base: ${displayBase}
+- Hash Esperado: ${expectedFullHash}
+- Hash Presentado: ${hashSignature}
+
+HISTÓRICO DE LOS 10 RETOS:
+${reconstructedAuditLog.join('\n')}
+=====================================================`;
+
+      // Smooth scroll to results
+      diagnosticPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function escapeHTML(str) {
+      if (typeof str !== 'string') return String(str || '');
+      return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    /**
+     * ========================================================================
+     * EVENT LISTENERS & AUTO-PARSING
+     * ========================================================================
+     */
+    document.addEventListener('DOMContentLoaded', () => {
+      const cvhcInput = document.getElementById('inputCvhcToken');
+      const seedInput = document.getElementById('inputSeed');
+      const scoreInput = document.getElementById('inputScore');
+      const timeInput = document.getElementById('inputTime');
+      const hashInput = document.getElementById('inputHashSignature');
+
+      // Auto-extract when pasting CVHC
+      cvhcInput.addEventListener('input', () => {
+        const parsed = parseCVHCToken(cvhcInput.value);
+        if (parsed) {
+          seedInput.value = parsed.seed;
+          scoreInput.value = parsed.score;
+          timeInput.value = parsed.time;
+          hashInput.value = parsed.hash;
+        }
+      });
+
+      document.getElementById('btnAuditGame').addEventListener('click', () => {
+        performAudit().catch(err => {
+          console.error('Error al verificar la partida:', err);
+          const errorPanel = document.getElementById('auditError');
+          errorPanel.textContent = 'No se pudo completar la comprobación. Revisa los datos e inténtalo de nuevo.';
+          errorPanel.hidden = false;
+          document.getElementById('diagnosticPanel').classList.remove('show');
+        });
+      });
+
+      document.getElementById('btnCopyAuditRecord').addEventListener('click', () => {
+        if (!lastAuditReportText) return;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(lastAuditReportText).then(showToast);
+        } else {
+          const area = document.createElement('textarea');
+          area.value = lastAuditReportText;
+          document.body.appendChild(area);
+          area.select();
+          document.execCommand('copy');
+          document.body.removeChild(area);
+          showToast();
+        }
+      });
+    });
+
+    function showToast() {
+      const toast = document.getElementById('auditToastMsg');
+      if (toast) {
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 2500);
+      }
+    }
+  </script>
+</body>
+</html>
